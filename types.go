@@ -1,0 +1,86 @@
+package main
+
+// Coordinate represents latitude and longitude
+type Coordinate struct {
+	Lat float64 `json:"Lat"`
+	Lng float64 `json:"Lng"`
+}
+
+// MapBounds represents the geographic bounds
+type MapBounds struct {
+	SouthWest Coordinate `json:"SouthWest"`
+	NorthEast Coordinate `json:"NorthEast"`
+}
+
+// InputData represents the structure of each item in test.json
+type InputData struct {
+	ZoomLevel int       `json:"zoomLevel"`
+	MapBounds MapBounds `json:"mapBounds"`
+}
+
+// MarkerPosition represents the position of a marker
+type MarkerPosition struct {
+	Position Coordinate `json:"Position"`
+}
+
+// MarkerResponse represents the response from the GetMarkers endpoint
+type MarkerResponse struct {
+	D struct {
+		Result struct {
+			Markers []MarkerPosition `json:"Markers"`
+		} `json:"Result"`
+	} `json:"d"`
+}
+
+// MarkerInfoResponse represents the response from the GetMarkerInfo endpoint
+type MarkerInfoResponse struct {
+	D struct {
+		Result struct {
+			Html string `json:"Html"`
+		} `json:"Result"`
+	} `json:"d"`
+}
+
+// OutputData represents the structure we want to save
+type OutputData struct {
+	Link string `json:"link"`
+}
+
+type Property struct {
+	Id               int
+	Title            string
+	CivicNumber      string
+	Street           string
+	AppartmentNumber string
+	City             string
+	Neighbourhood    string
+	Price            string
+	Description      string
+	NumberOfBedrooms string
+	NumberOfRooms    string
+	NumberOfToilets  string
+	Longitude        string
+	Latitude         string
+}
+
+type PropertyFeatures struct {
+	Id         int
+	PropertyId int
+	Title      string
+	Value      string
+}
+
+type PropertyExpenses struct {
+	Id           int
+	PropertyId   int
+	Type         string
+	AnnualPrice  string
+	MonthlyPrice string
+}
+
+type PropertyPhotos struct {
+	Id          int
+	PropertyId  int
+	PhotoLink   string
+	Description string
+}
