@@ -3,11 +3,11 @@ module centris-api
 go 1.23.4
 
 require (
+	github.com/gocolly/colly v1.2.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/joho/godotenv v1.5.1
 	github.com/testcontainers/testcontainers-go v0.34.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.34.0
-	github.com/gocolly/colly v1.2.0
 )
 
 require (
