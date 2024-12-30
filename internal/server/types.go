@@ -1,4 +1,4 @@
-package main
+package server
 
 // Coordinate represents latitude and longitude
 type Coordinate struct {
@@ -41,7 +41,16 @@ type MarkerInfoResponse struct {
 	} `json:"d"`
 }
 
-// OutputData represents the structure we want to save
+type BrokerResponse struct {
+	D struct {
+		Result struct {
+			Html  string `json:"Html"`
+			Title string `json:"Title"`
+		} `json:"Result"`
+		Succeeded bool `json:"Succeeded"`
+	} `json:"d"`
+}
+
 type OutputData struct {
 	Link string `json:"link"`
 }
@@ -83,4 +92,13 @@ type PropertyPhotos struct {
 	PropertyId  int
 	PhotoLink   string
 	Description string
+}
+
+// BrokerInfo holds all the information we want to collect
+type Broker struct {
+	Id           int
+	Name         string
+	Title        string
+	ProfilePhoto string
+	// Add other fields as needed
 }
