@@ -7,23 +7,25 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	_ "github.com/joho/godotenv/autoload"
 
-	"centris-api/internal/database"
+	"centris-api/internal/repository"
 )
 
 type Server struct {
-	port int
-
-	db database.Service
+	port    int
+	db      *pgx.Conn
+	queries *repository.Queries
 }
 
-func NewServer() *http.Server {
+func NewServer(db *pgx.Conn) *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	repo := repository.New(db)
 	NewServer := &Server{
-		port: port,
-
-		db: database.New(),
+		port:    port,
+		db:      db,
+		queries: repo,
 	}
 
 	// Declare Server config
