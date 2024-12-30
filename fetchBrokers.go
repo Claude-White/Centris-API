@@ -70,10 +70,10 @@ func getBroker(domain string, path string) {
 	<-done
 }
 
-func main() {
-	domain := "www.centris.ca"
-	path := "/fr/courtiers-immobiliers"
-
-	brokers := getTotalNumberOfBrokers(domain, path)
-
-}
+// func main() {
+// 	domain := "www.centris.ca"
+// 	path := "/fr/courtiers-immobiliers"
+//
+// 	brokers := getTotalNumberOfBrokers(domain, path)
+//
+// }
