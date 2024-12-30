@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS property_expenses (
 CREATE TABLE IF NOT EXISTS property (
   id bigint NOT NULL PRIMARY KEY,
   title varchar(500) NOT NULL,
+  category varchar(500) NOT NULL,
   civic_number varchar(500),
   street_name varchar(500),
   appartment_number varchar(500),
