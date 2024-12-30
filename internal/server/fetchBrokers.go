@@ -9,11 +9,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 )
 
+var httpClient = &http.Client{
+	Timeout: 60 * time.Second, // Reuse HTTP client with a timeout
+}
+
+// Fetch broker HTML for a given start position
 func getBrokerHTML(startPosition int) (string, error) {
 	url := "https://www.centris.ca/Broker/GetBrokers"
 	requestBody := map[string]int{
@@ -32,8 +39,7 @@ func getBrokerHTML(startPosition int) (string, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("error making request: %v", err)
 	}
@@ -84,7 +90,7 @@ func (broker *Broker) getBrokerId(doc *goquery.Document) {
 	})
 }
 
-// GetBroker collects all broker information from a single POST request
+// Fetch broker information for a single position
 func GetBroker(startPosition int) (Broker, error) {
 	// Get HTML from POST request
 	html, err := getBrokerHTML(startPosition)
@@ -110,6 +116,50 @@ func GetBroker(startPosition int) (Broker, error) {
 	return broker, nil
 }
 
+// Fetch brokers concurrently
+func GetBrokersConcurrently(startPositions []int, maxWorkers int) ([]Broker, error) {
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	brokers := []Broker{}
+	errChan := make(chan error, len(startPositions))
+
+	// Limit concurrency by using a buffered channel for workers
+	workerChan := make(chan struct{}, maxWorkers)
+
+	for _, startPosition := range startPositions {
+		wg.Add(1)
+		workerChan <- struct{}{} // Block if we've reached max concurrency
+
+		go func(pos int) {
+			defer wg.Done()
+			defer func() { <-workerChan }() // Release a worker slot
+
+			broker, err := GetBroker(pos)
+			if err != nil {
+				errChan <- fmt.Errorf("error fetching broker at position %d: %v", pos, err)
+				return
+			}
+
+			// Use mutex to prevent race conditions while appending to the slice
+			mu.Lock()
+			brokers = append(brokers, broker)
+			mu.Unlock()
+		}(startPosition)
+	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+	close(errChan)
+
+	// Check if any errors occurred
+	if len(errChan) > 0 {
+		return nil, <-errChan
+	}
+
+	return brokers, nil
+}
+
+// Fetch total number of brokers (helper function)
 func getTotalNumberOfBrokers(domain string, path string) int {
 	var num int
 	done := make(chan bool)
@@ -142,21 +192,22 @@ func getTotalNumberOfBrokers(domain string, path string) int {
 	return num
 }
 
-func main() {
-	domain := "www.centris.ca"
-	path := "/fr/courtiers-immobiliers"
-	numberOfBrokers := getTotalNumberOfBrokers(domain, path)
-
-	for i := range numberOfBrokers {
-		broker, err := GetBroker(i)
-		if err != nil {
-			log.Fatalf("Error getting broker info: %v", err)
-		}
-
-		fmt.Println("Id:", broker.Id)
-		fmt.Println("Name:", broker.Name)
-		fmt.Println("Title:", broker.Title)
-		fmt.Println("ProfilePhoto:", broker.ProfilePhoto)
-		fmt.Println()
-	}
-}
+// Example usage
+// func main() {
+// 	// Assume you want brokers starting from positions 0, 10, 20, etc.
+// 	startPositions := []int{0, 10, 20, 30, 40, 50} // Add as many as needed
+//
+// 	start := time.Now()
+// 	brokers, err := GetBrokersConcurrently(startPositions)
+// 	if err != nil {
+// 		log.Fatalf("Error fetching brokers: %v", err)
+// 	}
+//
+// 	// Print results
+// 	for _, broker := range brokers {
+// 		fmt.Printf("Broker ID: %d, Name: %s, Title: %s, Profile Photo: %s\n",
+// 			broker.Id, broker.Name, broker.Title, broker.ProfilePhoto)
+// 	}
+//
+// 	fmt.Printf("Fetched %d brokers in %v\n", len(brokers), time.Since(start))
+// }

@@ -10,38 +10,39 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"os/signal"
 	"regexp"
 	"sync"
 	"time"
 )
 
-// func main() {
-// 	// Set up channel for handling interrupt signal
-// 	domain := "https://www.centris.ca"
-// 	interrupt := make(chan os.Signal, 1)
-// 	signal.Notify(interrupt, os.Interrupt)
+func main() {
+	// Set up channel for handling interrupt signal
+	domain := "https://www.centris.ca"
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
 
-// 	// Create a mutex to protect allData
-// 	var mu sync.Mutex
-// 	var allData []OutputData
+	// Create a mutex to protect allData
+	var mu sync.Mutex
+	var allData []OutputData
 
-// 	// Create a channel to signal when we're done
-// 	done := make(chan bool)
+	// Create a channel to signal when we're done
+	done := make(chan bool)
 
-// 	go func() {
-// 		fetchPropertyLinks(domain, done, &allData, &mu)
-// 	}()
+	go func() {
+		fetchPropertyLinks(domain, done, &allData, &mu)
+	}()
 
-// 	// Wait for either interrupt or completion
-// 	select {
-// 	case <-interrupt:
-// 		fmt.Println("Script is about to terminate. Saving data...")
-// 		savePropertyLinks(allData)
-// 	case <-done:
-// 		fmt.Println("Processing complete. Saving data...")
-// 		savePropertyLinks(allData)
-// 	}
-// }
+	// Wait for either interrupt or completion
+	select {
+	case <-interrupt:
+		fmt.Println("Script is about to terminate. Saving data...")
+		savePropertyLinks(allData)
+	case <-done:
+		fmt.Println("Processing complete. Saving data...")
+		savePropertyLinks(allData)
+	}
+}
 
 func savePropertyLinks(arr []OutputData) {
 	buffer := &bytes.Buffer{}
@@ -212,12 +213,12 @@ func fetchPropertyLinks(domain string, done chan bool, allData *[]OutputData, mu
 			*allData = append(*allData, OutputData{Link: domain + path})
 			fmt.Println("Successfully Fetched -", time.Now().Format("2006-01-02 15:04:05"))
 			mu.Unlock()
-			// Delay for 1 second
-			time.Sleep(time.Second)
+			// Delay for 0.5 second
+			time.Sleep(time.Millisecond * 500)
 		}
 
 		// Delay for 1 second before next item
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 500)
 	}
 
 	done <- true
