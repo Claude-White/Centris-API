@@ -4,14 +4,21 @@ import (
 	"centris-api/internal/repository"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 )
+
+type RequestBody struct {
+	StartPosition int
+	NumberOfItems int
+}
 
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /properties/{mls}", s.getProperty)
+	mux.HandleFunc("POST /properties", s.getAllProperties)
 	mux.HandleFunc("/brokers", s.GetBrokers)
 	mux.HandleFunc("/properties", s.GetAllProperties)
 
@@ -64,6 +71,27 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getProperty(w http.ResponseWriter, r *http.Request) {
 	// mls := r.PathValue("mls")
 
+	// mls := r.PathValue("mls")
+}
+
+func (s *Server) getAllProperties(w http.ResponseWriter, r *http.Request) {
+	// ctx := context.Background()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Parse the JSON body
+	var req RequestBody
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	// s.queries.getAllProperties(ctx, req)
 }
 
 func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
