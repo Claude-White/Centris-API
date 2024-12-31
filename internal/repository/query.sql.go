@@ -7,10 +7,59 @@ package repository
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createProperty = `-- name: CreateProperty :one
+INSERT INTO property (id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+RETURNING id
+`
+
+type CreatePropertyParams struct {
+	ID                int64
+	Title             string
+	Category          string
+	CivicNumber       pgtype.Text
+	StreetName        pgtype.Text
+	ApartmentNumber   pgtype.Text
+	CityName          pgtype.Text
+	NeighbourhoodName pgtype.Text
+	Price             pgtype.Numeric
+	Description       pgtype.Text
+	BedroomNumber     pgtype.Int4
+	RoomNumber        pgtype.Int4
+	BathroomNumber    pgtype.Int4
+	Longitude         pgtype.Numeric
+	Latitude          pgtype.Numeric
+}
+
+func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) (int64, error) {
+	row := q.db.QueryRow(ctx, createProperty,
+		arg.ID,
+		arg.Title,
+		arg.Category,
+		arg.CivicNumber,
+		arg.StreetName,
+		arg.ApartmentNumber,
+		arg.CityName,
+		arg.NeighbourhoodName,
+		arg.Price,
+		arg.Description,
+		arg.BedroomNumber,
+		arg.RoomNumber,
+		arg.BathroomNumber,
+		arg.Longitude,
+		arg.Latitude,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getAllProperties = `-- name: GetAllProperties :many
-SELECT id, title, civic_number, street_name, appartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude FROM property
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at FROM property
 LIMIT $1 OFFSET $2
 `
 
@@ -31,9 +80,10 @@ func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesPara
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
+			&i.Category,
 			&i.CivicNumber,
 			&i.StreetName,
-			&i.AppartmentNumber,
+			&i.ApartmentNumber,
 			&i.CityName,
 			&i.NeighbourhoodName,
 			&i.Price,
@@ -43,6 +93,8 @@ func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesPara
 			&i.BathroomNumber,
 			&i.Longitude,
 			&i.Latitude,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

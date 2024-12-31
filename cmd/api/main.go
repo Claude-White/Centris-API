@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"centris-api/internal/server"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -37,8 +40,12 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 }
 
 func main() {
-
-	server := server.NewServer()
+	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if dbErr != nil {
+		log.Fatalf("Failed to connect to the database: %v", dbErr)
+	}
+	defer conn.Close(context.Background())
+	server := server.NewServer(conn)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

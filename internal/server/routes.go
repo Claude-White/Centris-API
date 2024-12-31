@@ -1,6 +1,8 @@
 package server
 
 import (
+	"centris-api/internal/repository"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -11,6 +13,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	mux.HandleFunc("GET /properties/{mls}", s.getProperty)
 	mux.HandleFunc("/brokers", s.GetBrokers)
+	mux.HandleFunc("/properties", s.GetAllProperties)
 
 	// Wrap the mux with CORS middleware
 	return s.corsMiddleware(mux)
@@ -48,8 +51,18 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+	query := "SELECT 1"
+	var result int
+	err := s.db.QueryRow(context.Background(), query).Scan(&result)
+	if err != nil {
+		log.Printf("Database health check failed: %v", err)
+		return
+	}
+}
+
 func (s *Server) getProperty(w http.ResponseWriter, r *http.Request) {
-	mls := r.PathValue("mls")
+	// mls := r.PathValue("mls")
 
 }
 
@@ -68,6 +81,27 @@ func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(brokers)
 	if err != nil {
 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(resp); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
+}
+
+func (s *Server) GetAllProperties(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	properties, err := s.queries.GetAllProperties(ctx, repository.GetAllPropertiesParams{
+		Limit:  1,
+		Offset: 0,
+	})
+
+	if err != nil {
+		log.Printf("Failed to get all properties: %v", err)
+	}
+
+	resp, err := json.Marshal(properties)
+	if err != nil {
+		http.Error(w, "Failed to marshal properties response", http.StatusInternalServerError)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
