@@ -5,8 +5,236 @@
 package repository
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type BrokerLinkType string
+
+const (
+	BrokerLinkTypeWebsite   BrokerLinkType = "website"
+	BrokerLinkTypeLinkedin  BrokerLinkType = "linkedin"
+	BrokerLinkTypeFacebook  BrokerLinkType = "facebook"
+	BrokerLinkTypeTwitter   BrokerLinkType = "twitter"
+	BrokerLinkTypeInstagram BrokerLinkType = "instagram"
+	BrokerLinkTypeYoutube   BrokerLinkType = "youtube"
+)
+
+func (e *BrokerLinkType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BrokerLinkType(s)
+	case string:
+		*e = BrokerLinkType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BrokerLinkType: %T", src)
+	}
+	return nil
+}
+
+type NullBrokerLinkType struct {
+	BrokerLinkType BrokerLinkType
+	Valid          bool // Valid is true if BrokerLinkType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBrokerLinkType) Scan(value interface{}) error {
+	if value == nil {
+		ns.BrokerLinkType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BrokerLinkType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBrokerLinkType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BrokerLinkType), nil
+}
+
+type ExpenseType string
+
+const (
+	ExpenseTypeTax         ExpenseType = "tax"
+	ExpenseTypeInsurance   ExpenseType = "insurance"
+	ExpenseTypeMaintenance ExpenseType = "maintenance"
+	ExpenseTypeUtilities   ExpenseType = "utilities"
+	ExpenseTypeOther       ExpenseType = "other"
+)
+
+func (e *ExpenseType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExpenseType(s)
+	case string:
+		*e = ExpenseType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExpenseType: %T", src)
+	}
+	return nil
+}
+
+type NullExpenseType struct {
+	ExpenseType ExpenseType
+	Valid       bool // Valid is true if ExpenseType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExpenseType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExpenseType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExpenseType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExpenseType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExpenseType), nil
+}
+
+type PhoneType string
+
+const (
+	PhoneTypeMobile PhoneType = "mobile"
+	PhoneTypeOffice PhoneType = "office"
+	PhoneTypeHome   PhoneType = "home"
+	PhoneTypeFax    PhoneType = "fax"
+)
+
+func (e *PhoneType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PhoneType(s)
+	case string:
+		*e = PhoneType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PhoneType: %T", src)
+	}
+	return nil
+}
+
+type NullPhoneType struct {
+	PhoneType PhoneType
+	Valid     bool // Valid is true if PhoneType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPhoneType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PhoneType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PhoneType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPhoneType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PhoneType), nil
+}
+
+type PropertyCategory string
+
+const (
+	PropertyCategoryHouse      PropertyCategory = "house"
+	PropertyCategoryApartment  PropertyCategory = "apartment"
+	PropertyCategoryCondo      PropertyCategory = "condo"
+	PropertyCategoryLand       PropertyCategory = "land"
+	PropertyCategoryCommercial PropertyCategory = "commercial"
+)
+
+func (e *PropertyCategory) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PropertyCategory(s)
+	case string:
+		*e = PropertyCategory(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PropertyCategory: %T", src)
+	}
+	return nil
+}
+
+type NullPropertyCategory struct {
+	PropertyCategory PropertyCategory
+	Valid            bool // Valid is true if PropertyCategory is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPropertyCategory) Scan(value interface{}) error {
+	if value == nil {
+		ns.PropertyCategory, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PropertyCategory.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPropertyCategory) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PropertyCategory), nil
+}
+
+type PropertyStatus string
+
+const (
+	PropertyStatusAvailable PropertyStatus = "available"
+	PropertyStatusPending   PropertyStatus = "pending"
+	PropertyStatusSold      PropertyStatus = "sold"
+	PropertyStatusRented    PropertyStatus = "rented"
+	PropertyStatusOffMarket PropertyStatus = "off_market"
+)
+
+func (e *PropertyStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PropertyStatus(s)
+	case string:
+		*e = PropertyStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PropertyStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPropertyStatus struct {
+	PropertyStatus PropertyStatus
+	Valid          bool // Valid is true if PropertyStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPropertyStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PropertyStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PropertyStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPropertyStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PropertyStatus), nil
+}
 
 type Broker struct {
 	ID                int64
@@ -15,59 +243,70 @@ type Broker struct {
 	LastName          string
 	Title             string
 	ProfilePhoto      pgtype.Text
-	ComplementaryInfo string
+	ComplementaryInfo pgtype.Text
 	ServedAreas       pgtype.Text
 	Presentation      pgtype.Text
 	CorporationName   pgtype.Text
 	AgencyName        string
 	AgencyAddress     string
 	AgencyLogo        pgtype.Text
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
 }
 
-type BrokerExteralLink struct {
-	ID       pgtype.UUID
-	BrokerID int64
-	Type     string
-	Link     string
+type BrokerExternalLink struct {
+	ID        pgtype.UUID
+	BrokerID  int64
+	Type      string
+	Link      string
+	CreatedAt pgtype.Timestamptz
 }
 
 type BrokerPhone struct {
-	ID       pgtype.UUID
-	BrokerID int64
-	Type     string
-	Number   string
+	ID        pgtype.UUID
+	BrokerID  int64
+	Type      string
+	Number    string
+	IsPrimary pgtype.Bool
+	CreatedAt pgtype.Timestamptz
 }
 
 type BrokerProperty struct {
-	ID         pgtype.UUID
-	BrokerID   int64
-	PropertyID int64
+	ID              pgtype.UUID
+	BrokerID        int64
+	PropertyID      int64
+	IsPrimaryBroker pgtype.Bool
+	CreatedAt       pgtype.Timestamptz
 }
 
 type Property struct {
 	// MLS number
 	ID                int64
 	Title             string
+	Category          string
 	CivicNumber       pgtype.Text
 	StreetName        pgtype.Text
-	AppartmentNumber  pgtype.Text
+	ApartmentNumber   pgtype.Text
 	CityName          pgtype.Text
 	NeighbourhoodName pgtype.Text
-	Price             string
+	Price             pgtype.Numeric
 	Description       pgtype.Text
-	BedroomNumber     pgtype.Text
-	RoomNumber        pgtype.Text
-	BathroomNumber    pgtype.Text
-	Longitude         string
-	Latitude          string
+	BedroomNumber     pgtype.Int4
+	RoomNumber        pgtype.Int4
+	BathroomNumber    pgtype.Int4
+	Longitude         pgtype.Numeric
+	Latitude          pgtype.Numeric
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
 }
 
 type PropertyExpense struct {
 	ID           pgtype.UUID
 	PropertyID   int64
 	Type         string
-	AnnualPrice  string
-	MonthlyPrice string
+	AnnualPrice  pgtype.Numeric
+	MonthlyPrice pgtype.Numeric
+	CreatedAt    pgtype.Timestamptz
 }
 
 type PropertyFeature struct {
@@ -75,6 +314,7 @@ type PropertyFeature struct {
 	PropertyID int64
 	Title      string
 	Value      string
+	CreatedAt  pgtype.Timestamptz
 }
 
 type PropertyPhoto struct {
@@ -82,4 +322,6 @@ type PropertyPhoto struct {
 	PropertyID  int64
 	Link        string
 	Description pgtype.Text
+	IsPrimary   pgtype.Bool
+	CreatedAt   pgtype.Timestamptz
 }
