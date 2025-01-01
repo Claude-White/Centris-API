@@ -48,11 +48,11 @@ SELECT *
 FROM property
 WHERE (
     6371 * acos(
-        cos(radians($1)) * cos(radians(property.latitude)) *
-        cos(radians(property.longitude) - radians($2)) +
-        sin(radians($1)) * sin(radians(latitude))
+        cos(radians(@latitude::float32)) * cos(radians(property.latitude)) *
+        cos(radians(property.longitude) - radians(@longitude::float32)) +
+        sin(radians(@latitude::float32)) * sin(radians(latitude))
     )
-) <= $3;
+) <= @radius::float32;
 
 -- name: CreateProperty :one
 INSERT INTO property (id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude)

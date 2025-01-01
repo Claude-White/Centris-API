@@ -24,13 +24,13 @@ type CreatePropertyParams struct {
 	ApartmentNumber   *string `json:"apartment_number"`
 	CityName          *string `json:"city_name"`
 	NeighbourhoodName *string `json:"neighbourhood_name"`
-	Price             string  `json:"price"`
+	Price             float32 `json:"price"`
 	Description       *string `json:"description"`
 	BedroomNumber     *int32  `json:"bedroom_number"`
 	RoomNumber        *int32  `json:"room_number"`
 	BathroomNumber    *int32  `json:"bathroom_number"`
-	Longitude         string  `json:"longitude"`
-	Latitude          string  `json:"latitude"`
+	Longitude         float32 `json:"longitude"`
+	Latitude          float32 `json:"latitude"`
 }
 
 func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) (int64, error) {
@@ -365,21 +365,21 @@ SELECT id, title, category, civic_number, street_name, apartment_number, city_na
 FROM property
 WHERE (
     6371 * acos(
-        cos(radians($1)) * cos(radians(property.latitude)) *
-        cos(radians(property.longitude) - radians($2)) +
-        sin(radians($1)) * sin(radians(latitude))
+        cos(radians($1::float32)) * cos(radians(property.latitude)) *
+        cos(radians(property.longitude) - radians($2::float32)) +
+        sin(radians($1::float32)) * sin(radians(latitude))
     )
-) <= $3
+) <= $3::float32
 `
 
 type GetAllRadiusPropertiesParams struct {
-	Radians   float64 `json:"radians"`
-	Radians_2 float64 `json:"radians_2"`
-	Latitude  string  `json:"latitude"`
+	Latitude  interface{} `json:"latitude"`
+	Longitude interface{} `json:"longitude"`
+	Radius    interface{} `json:"radius"`
 }
 
 func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllRadiusProperties, arg.Radians, arg.Radians_2, arg.Latitude)
+	rows, err := q.db.Query(ctx, getAllRadiusProperties, arg.Latitude, arg.Longitude, arg.Radius)
 	if err != nil {
 		return nil, err
 	}
@@ -454,8 +454,8 @@ LIMIT 1
 `
 
 type GetPropertyByCoordinatesParams struct {
-	Longitude string `json:"longitude"`
-	Latitude  string `json:"latitude"`
+	Longitude float32 `json:"longitude"`
+	Latitude  float32 `json:"latitude"`
 }
 
 func (q *Queries) GetPropertyByCoordinates(ctx context.Context, arg GetPropertyByCoordinatesParams) (Property, error) {
