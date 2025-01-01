@@ -12,6 +12,7 @@ import (
 
 	"centris-api/internal/server"
 
+	_ "centris-api/docs"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -39,6 +40,8 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	done <- true
 }
 
+// @title Swagger Centris API
+// @version 0.1
 func main() {
 	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbErr != nil {
