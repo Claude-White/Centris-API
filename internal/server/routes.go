@@ -23,6 +23,12 @@ type Coordinates struct {
 	Latitude  pgtype.Numeric
 }
 
+type GeoFilterCoordinates struct {
+	Longitude float64
+	Latitude  float64
+	Radius    pgtype.Numeric
+}
+
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 	// Property endpoints
@@ -31,6 +37,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /properties", s.GetAllProperties)
 	mux.HandleFunc("POST /properties/broker/{brokerId}", s.GetAllBrokerProperties)
 	mux.HandleFunc("POST /properties/agency/{agencyName}", s.GetAllAgencyProperties)
+	mux.HandleFunc("POST /properties/city/{cityName}", s.GetAllCityProperties)
+	mux.HandleFunc("POST /properties/neighbourhood/{NeighbourhoodName}", s.GetAllNeighbourhoodProperties)
+	mux.HandleFunc("POST /properties/geo-filter/{radius}", s.GetAllRadiusProperties)
 
 	// Broker enpoints
 	mux.HandleFunc("/brokers", s.GetBrokers)
@@ -299,6 +308,143 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 	resp, err := json.Marshal(properties)
 	if err != nil {
 		http.Error(w, "Failed to marshal category properties response", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(resp); err != nil {
+		log.Printf("Failed to write response: %v", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	city := pgtype.Text{String: strings.ToLower(strings.TrimSpace(r.PathValue("cityName"))), Valid: true}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var req RequestBody
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	properties, err := s.queries.GetAllCityProperties(ctx, repository.GetAllCityPropertiesParams{
+		CityName: city,
+		Limit:    req.NumberOfItems,
+		Offset:   req.StartPosition,
+	})
+	if err != nil {
+		log.Printf("Failed to get city properties: %v", err)
+		http.Error(w, "Failed to get city properties", http.StatusInternalServerError)
+	}
+
+	if properties == nil {
+		http.Error(w, "City properties not found", http.StatusNotFound)
+	}
+
+	resp, err := json.Marshal(properties)
+	if err != nil {
+		http.Error(w, "Failed to marshal city properties response", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(resp); err != nil {
+		log.Printf("Failed to write response: %v", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	neighbourhood := pgtype.Text{String: strings.ToLower(strings.TrimSpace(r.PathValue("NeighbourhoodName"))), Valid: true}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var req RequestBody
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	properties, err := s.queries.GetAllNeighbourhoodProperties(ctx, repository.GetAllNeighbourhoodPropertiesParams{
+		NeighbourhoodName: neighbourhood,
+		Limit:             req.NumberOfItems,
+		Offset:            req.StartPosition,
+	})
+	if err != nil {
+		log.Printf("Failed to get neighbourhood properties: %v", err)
+		http.Error(w, "Failed to get neighbourhood properties", http.StatusInternalServerError)
+	}
+
+	if properties == nil {
+		http.Error(w, "Neighbourhood properties not found", http.StatusNotFound)
+	}
+
+	resp, err := json.Marshal(properties)
+	if err != nil {
+		http.Error(w, "Failed to marshal neighbourhood properties response", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(resp); err != nil {
+		log.Printf("Failed to write response: %v", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	radius := strings.TrimSpace(r.PathValue("radius"))
+	var radiusNumeric pgtype.Numeric
+
+	floatValue, err := strconv.ParseFloat(radius, 64)
+	if err != nil {
+		http.Error(w, "Invalid radius value", http.StatusBadRequest)
+	}
+
+	radiusNumeric.Scan(strconv.FormatFloat(floatValue, 'f', -1, 64))
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var req GeoFilterCoordinates
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	properties, err := s.queries.GetAllRadiusProperties(ctx, repository.GetAllRadiusPropertiesParams{
+		Latitude:  req.Latitude,
+		Longitude: req.Longitude,
+		Radius:    radiusNumeric,
+	})
+	if err != nil {
+		log.Printf("Failed to get radius properties: %v", err)
+		http.Error(w, "Failed to get radius properties", http.StatusInternalServerError)
+	}
+
+	if properties == nil {
+		http.Error(w, "Radius properties not found", http.StatusNotFound)
+	}
+
+	resp, err := json.Marshal(properties)
+	if err != nil {
+		http.Error(w, "Failed to marshal radius properties response", http.StatusInternalServerError)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
