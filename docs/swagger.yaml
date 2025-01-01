@@ -1,0 +1,311 @@
+definitions:
+  repository.Property:
+    properties:
+      apartment_number:
+        type: string
+      bathroom_number:
+        type: integer
+      bedroom_number:
+        type: integer
+      category:
+        type: string
+      city_name:
+        type: string
+      civic_number:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        description: MLS number
+        type: integer
+      latitude:
+        type: string
+      longitude:
+        type: string
+      neighbourhood_name:
+        type: string
+      price:
+        type: string
+      room_number:
+        type: integer
+      street_name:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  server.Broker:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      profilePhoto:
+        type: string
+      title:
+        type: string
+    type: object
+  server.Coordinates:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  server.RequestBody:
+    properties:
+      numberOfItems:
+        type: integer
+      startPosition:
+        type: integer
+    type: object
+info:
+  contact: {}
+  title: Swagger Centris API
+  version: "0.1"
+paths:
+  /brokers:
+    get:
+      description: Retrieves a list of all brokers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/server.Broker'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all brokers
+      tags:
+      - Brokers
+  /properties:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties with pagination
+      parameters:
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties
+      tags:
+      - Properties
+  /properties/{mls}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves property details using the provided MLS number
+      parameters:
+      - description: MLS number
+        in: path
+        name: mls
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/repository.Property'
+        "400":
+          description: Invalid MLS number
+          schema:
+            type: string
+        "404":
+          description: Property not found
+          schema:
+            type: string
+        "500":
+          description: Failed to get property
+          schema:
+            type: string
+      summary: Get property by MLS number
+      tags:
+      - Properties
+  /properties/agency/{agencyName}:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties for a specific agency with pagination
+      parameters:
+      - description: Agency Name
+        in: path
+        name: agencyName
+        required: true
+        type: string
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid agency name or request body
+          schema:
+            type: string
+        "404":
+          description: Agency properties not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties by agency
+      tags:
+      - Properties
+  /properties/broker/{brokerId}:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties for a specific broker with pagination
+      parameters:
+      - description: Broker ID
+        in: path
+        name: brokerId
+        required: true
+        type: integer
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid broker ID or request body
+          schema:
+            type: string
+        "404":
+          description: Broker properties not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties by broker
+      tags:
+      - Properties
+  /properties/category/{categoryName}:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties for a specific category with pagination
+      parameters:
+      - description: Category Name
+        in: path
+        name: categoryName
+        required: true
+        type: string
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid category name or request body
+          schema:
+            type: string
+        "404":
+          description: Category properties not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties by category
+      tags:
+      - Properties
+  /properties/coordinates:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a property based on latitude and longitude
+      parameters:
+      - description: Coordinates parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.Coordinates'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/repository.Property'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "404":
+          description: Property not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get a property by coordinates
+      tags:
+      - Properties
+swagger: "2.0"

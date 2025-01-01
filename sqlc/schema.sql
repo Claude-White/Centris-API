@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS property (
     bedroom_number integer,
     room_number integer,
     bathroom_number integer,
-    longitude decimal(9,6) NOT NULL,
     latitude decimal(9,6) NOT NULL,
+    longitude decimal(9,6) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );

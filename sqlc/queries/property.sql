@@ -13,50 +13,14 @@ WHERE property.longitude = $1 AND property.latitude = $2
 LIMIT 1;
 
 -- name: GetAllBrokerProperties :many
-SELECT 
-    property.id, 
-    property.title, 
-    property.category, 
-    property.civic_number, 
-    property.street_name, 
-    property.apartment_number, 
-    property.city_name, 
-    property.neighbourhood_name, 
-    property.price, 
-    property.description, 
-    property.bedroom_number, 
-    property.room_number, 
-    property.bathroom_number, 
-    property.longitude, 
-    property.latitude, 
-    property.created_at, 
-    property.updated_at 
-FROM property
+SELECT property.* FROM property
 INNER JOIN broker_property
 ON property.id = broker_property.property_id
 WHERE broker_property.broker_id = $1
 LIMIT $2 OFFSET $3;
 
 -- name: GetAllAgencyProperties :many
-SELECT 
-    property.id, 
-    property.title, 
-    property.category, 
-    property.civic_number, 
-    property.street_name, 
-    property.apartment_number, 
-    property.city_name, 
-    property.neighbourhood_name, 
-    property.price, 
-    property.description, 
-    property.bedroom_number, 
-    property.room_number, 
-    property.bathroom_number, 
-    property.longitude, 
-    property.latitude, 
-    property.created_at, 
-    property.updated_at 
-FROM property
+SELECT property.* FROM property
 INNER JOIN broker_property
 ON property.id = broker_property.property_id
 INNER JOIN broker
