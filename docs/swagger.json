@@ -377,55 +377,56 @@
         "repository.Property": {
             "type": "object",
             "properties": {
-                "apartmentNumber": {
+                "apartment_number": {
                     "type": "string"
                 },
-                "bathroomNumber": {
+                "bathroom_number": {
                     "type": "integer"
                 },
-                "bedroomNumber": {
+                "bedroom_number": {
                     "type": "integer"
                 },
                 "category": {
                     "type": "string"
                 },
-                "cityName": {
+                "city_name": {
                     "type": "string"
                 },
-                "civicNumber": {
+                "civic_number": {
                     "type": "string"
                 },
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
                 },
                 "id": {
+                    "description": "MLS number",
                     "type": "integer"
                 },
                 "latitude": {
-                    "type": "number"
+                    "type": "string"
                 },
                 "longitude": {
-                    "type": "number"
+                    "type": "string"
                 },
-                "neighbourhoodName": {
+                "neighbourhood_name": {
                     "type": "string"
                 },
                 "price": {
-                    "type": "number"
+                    "type": "string"
                 },
-                "roomNumber": {
+                "room_number": {
                     "type": "integer"
                 },
-                "streetName": {
+                "street_name": {
                     "type": "string"
                 },
                 "title": {
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }

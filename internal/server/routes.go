@@ -4,7 +4,6 @@ import (
 	"centris-api/internal/repository"
 	"context"
 	"encoding/json"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/swaggo/http-swagger"
 	"io"
 	"log"
@@ -14,13 +13,12 @@ import (
 )
 
 type RequestBody struct {
-	StartPosition int32
-	NumberOfItems int32
+	StartPosition int32 `json:"start_position"`
+	NumberOfItems int32 `json:"number_of_items"`
 }
-
 type Coordinates struct {
-	Longitude pgtype.Numeric `json:"longitude" swaggertype:"number"`
-	Latitude  pgtype.Numeric `json:"latitude" swaggertype:"number"`
+	Longitude string `json:"longitude"`
+	Latitude  string `json:"latitude"`
 }
 
 func (s *Server) RegisterRoutes() http.Handler {

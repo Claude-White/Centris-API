@@ -7,8 +7,9 @@ package repository
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type BrokerLinkType string
@@ -35,8 +36,8 @@ func (e *BrokerLinkType) Scan(src interface{}) error {
 }
 
 type NullBrokerLinkType struct {
-	BrokerLinkType BrokerLinkType
-	Valid          bool // Valid is true if BrokerLinkType is not NULL
+	BrokerLinkType BrokerLinkType `json:"broker_link_type"`
+	Valid          bool           `json:"valid"` // Valid is true if BrokerLinkType is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -80,8 +81,8 @@ func (e *ExpenseType) Scan(src interface{}) error {
 }
 
 type NullExpenseType struct {
-	ExpenseType ExpenseType
-	Valid       bool // Valid is true if ExpenseType is not NULL
+	ExpenseType ExpenseType `json:"expense_type"`
+	Valid       bool        `json:"valid"` // Valid is true if ExpenseType is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -124,8 +125,8 @@ func (e *PhoneType) Scan(src interface{}) error {
 }
 
 type NullPhoneType struct {
-	PhoneType PhoneType
-	Valid     bool // Valid is true if PhoneType is not NULL
+	PhoneType PhoneType `json:"phone_type"`
+	Valid     bool      `json:"valid"` // Valid is true if PhoneType is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -169,8 +170,8 @@ func (e *PropertyCategory) Scan(src interface{}) error {
 }
 
 type NullPropertyCategory struct {
-	PropertyCategory PropertyCategory
-	Valid            bool // Valid is true if PropertyCategory is not NULL
+	PropertyCategory PropertyCategory `json:"property_category"`
+	Valid            bool             `json:"valid"` // Valid is true if PropertyCategory is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -214,8 +215,8 @@ func (e *PropertyStatus) Scan(src interface{}) error {
 }
 
 type NullPropertyStatus struct {
-	PropertyStatus PropertyStatus
-	Valid          bool // Valid is true if PropertyStatus is not NULL
+	PropertyStatus PropertyStatus `json:"property_status"`
+	Valid          bool           `json:"valid"` // Valid is true if PropertyStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -237,90 +238,91 @@ func (ns NullPropertyStatus) Value() (driver.Value, error) {
 }
 
 type Broker struct {
-	ID                int64           `json:"id"`
-	FirstName         string          `json:"firstName"`
-	MiddleName        pgtype.Text     `json:"middleName" swaggertype:"string"`
-	LastName          string          `json:"lastName"`
-	Title             string          `json:"title"`
-	ProfilePhoto      pgtype.Text     `json:"profilePhoto" swaggertype:"string"`
-	ComplementaryInfo pgtype.Text     `json:"complementaryInfo" swaggertype:"string"`
-	ServedAreas       pgtype.Text     `json:"servedAreas" swaggertype:"string"`
-	Presentation      pgtype.Text     `json:"presentation" swaggertype:"string"`
-	CorporationName   pgtype.Text     `json:"corporationName" swaggertype:"string"`
-	AgencyName        string          `json:"agencyName"`
-	AgencyAddress     string          `json:"agencyAddress"`
-	AgencyLogo        pgtype.Text     `json:"agencyLogo" swaggertype:"string"`
-	CreatedAt         pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
-	UpdatedAt         pgtype.Timestamptz `json:"updatedAt" swaggertype:"string"`
+	ID                int64      `json:"id"`
+	FirstName         string     `json:"first_name"`
+	MiddleName        *string    `json:"middle_name"`
+	LastName          string     `json:"last_name"`
+	Title             string     `json:"title"`
+	ProfilePhoto      *string    `json:"profile_photo"`
+	ComplementaryInfo *string    `json:"complementary_info"`
+	ServedAreas       *string    `json:"served_areas"`
+	Presentation      *string    `json:"presentation"`
+	CorporationName   *string    `json:"corporation_name"`
+	AgencyName        string     `json:"agency_name"`
+	AgencyAddress     string     `json:"agency_address"`
+	AgencyLogo        *string    `json:"agency_logo"`
+	CreatedAt         *time.Time `json:"created_at"`
+	UpdatedAt         *time.Time `json:"updated_at"`
 }
 
 type BrokerExternalLink struct {
-	ID        pgtype.UUID     `json:"id" swaggertype:"string"`
-	BrokerID  int64           `json:"brokerId"`
-	Type      string          `json:"type"`
-	Link      string          `json:"link"`
-	CreatedAt pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	ID        uuid.UUID  `json:"id"`
+	BrokerID  int64      `json:"broker_id"`
+	Type      string     `json:"type"`
+	Link      string     `json:"link"`
+	CreatedAt *time.Time `json:"created_at"`
 }
 
 type BrokerPhone struct {
-	ID        pgtype.UUID     `json:"id" swaggertype:"string"`
-	BrokerID  int64           `json:"brokerId"`
-	Type      string          `json:"type"`
-	Number    string          `json:"number"`
-	IsPrimary pgtype.Bool     `json:"isPrimary" swaggertype:"boolean"`
-	CreatedAt pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	ID        uuid.UUID  `json:"id"`
+	BrokerID  int64      `json:"broker_id"`
+	Type      string     `json:"type"`
+	Number    string     `json:"number"`
+	IsPrimary *bool      `json:"is_primary"`
+	CreatedAt *time.Time `json:"created_at"`
 }
 
 type BrokerProperty struct {
-	ID              pgtype.UUID     `json:"id" swaggertype:"string"`
-	BrokerID        int64           `json:"brokerId"`
-	PropertyID      int64           `json:"propertyId"`
-	IsPrimaryBroker pgtype.Bool     `json:"isPrimaryBroker" swaggertype:"boolean"`
-	CreatedAt       pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	ID              uuid.UUID  `json:"id"`
+	BrokerID        int64      `json:"broker_id"`
+	PropertyID      int64      `json:"property_id"`
+	IsPrimaryBroker *bool      `json:"is_primary_broker"`
+	CreatedAt       *time.Time `json:"created_at"`
 }
 
 type Property struct {
-	ID                int64           `json:"id"`
-	Title             string          `json:"title"`
-	Category          string          `json:"category"`
-	CivicNumber       pgtype.Text     `json:"civicNumber" swaggertype:"string"`
-	StreetName        pgtype.Text     `json:"streetName" swaggertype:"string"`
-	ApartmentNumber   pgtype.Text     `json:"apartmentNumber" swaggertype:"string"`
-	CityName          pgtype.Text     `json:"cityName" swaggertype:"string"`
-	NeighbourhoodName pgtype.Text     `json:"neighbourhoodName" swaggertype:"string"`
-	Price             pgtype.Numeric  `json:"price" swaggertype:"number"`
-	Description       pgtype.Text     `json:"description" swaggertype:"string"`
-	BedroomNumber     pgtype.Int4     `json:"bedroomNumber" swaggertype:"integer"`
-	RoomNumber        pgtype.Int4     `json:"roomNumber" swaggertype:"integer"`
-	BathroomNumber    pgtype.Int4     `json:"bathroomNumber" swaggertype:"integer"`
-	Latitude          pgtype.Numeric  `json:"latitude" swaggertype:"number"`
-	Longitude         pgtype.Numeric  `json:"longitude" swaggertype:"number"`
-	CreatedAt         pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
-	UpdatedAt         pgtype.Timestamptz `json:"updatedAt" swaggertype:"string"`
+	// MLS number
+	ID                int64      `json:"id"`
+	Title             string     `json:"title"`
+	Category          string     `json:"category"`
+	CivicNumber       *string    `json:"civic_number"`
+	StreetName        *string    `json:"street_name"`
+	ApartmentNumber   *string    `json:"apartment_number"`
+	CityName          *string    `json:"city_name"`
+	NeighbourhoodName *string    `json:"neighbourhood_name"`
+	Price             string     `json:"price"`
+	Description       *string    `json:"description"`
+	BedroomNumber     *int32     `json:"bedroom_number"`
+	RoomNumber        *int32     `json:"room_number"`
+	BathroomNumber    *int32     `json:"bathroom_number"`
+	Latitude          string     `json:"latitude"`
+	Longitude         string     `json:"longitude"`
+	CreatedAt         *time.Time `json:"created_at"`
+	UpdatedAt         *time.Time `json:"updated_at"`
 }
 
 type PropertyExpense struct {
-	ID           pgtype.UUID     `json:"id" swaggertype:"string"`
-	PropertyID   int64           `json:"propertyId"`
-	Type         string          `json:"type"`
-	AnnualPrice  pgtype.Numeric  `json:"annualPrice" swaggertype:"number"`
-	MonthlyPrice pgtype.Numeric  `json:"monthlyPrice" swaggertype:"number"`
-	CreatedAt    pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	ID           uuid.UUID  `json:"id"`
+	PropertyID   int64      `json:"property_id"`
+	Type         string     `json:"type"`
+	AnnualPrice  string     `json:"annual_price"`
+	MonthlyPrice string     `json:"monthly_price"`
+	CreatedAt    *time.Time `json:"created_at"`
 }
 
 type PropertyFeature struct {
-	ID         pgtype.UUID     `json:"id" swaggertype:"string"`
-	PropertyID int64           `json:"propertyId"`
-	Title      string          `json:"title"`
-	Value      string          `json:"value"`
-	CreatedAt  pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	ID         uuid.UUID  `json:"id"`
+	PropertyID int64      `json:"property_id"`
+	Title      string     `json:"title"`
+	Value      string     `json:"value"`
+	CreatedAt  *time.Time `json:"created_at"`
 }
 
 type PropertyPhoto struct {
-	ID          pgtype.UUID     `json:"id" swaggertype:"string"`
-	PropertyID  int64           `json:"propertyId"`
-	Link        string          `json:"link"`
-	Description pgtype.Text     `json:"description" swaggertype:"string"`
-	IsPrimary   pgtype.Bool     `json:"isPrimary" swaggertype:"boolean"`
-	CreatedAt   pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	ID          uuid.UUID  `json:"id"`
+	PropertyID  int64      `json:"property_id"`
+	Link        string     `json:"link"`
+	Description *string    `json:"description"`
+	IsPrimary   *bool      `json:"is_primary"`
+	CreatedAt   *time.Time `json:"created_at"`
 }
