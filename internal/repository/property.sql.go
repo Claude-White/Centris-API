@@ -219,7 +219,7 @@ LIMIT $2 OFFSET $3
 `
 
 type GetAllCityPropertiesParams struct {
-	CityName pgtype.Text
+	CityName *string
 	Limit    int32
 	Offset   int32
 }
@@ -269,7 +269,7 @@ LIMIT $2 OFFSET $3
 `
 
 type GetAllNeighbourhoodPropertiesParams struct {
-	NeighbourhoodName pgtype.Text
+	NeighbourhoodName *string
 	Limit             int32
 	Offset            int32
 }
@@ -375,7 +375,7 @@ WHERE (
 type GetAllRadiusPropertiesParams struct {
 	Latitude   float64
 	Longitude float64
-	Radius  pgtype.Numeric
+	Radius  float64
 }
 
 func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPropertiesParams) ([]Property, error) {
