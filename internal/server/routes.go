@@ -4,12 +4,14 @@ import (
 	"centris-api/internal/repository"
 	"context"
 	"encoding/json"
-	"github.com/swaggo/http-swagger"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type RequestBody struct {
@@ -39,7 +41,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /properties/broker/{brokerId}", s.GetAllBrokerProperties)
 	mux.HandleFunc("POST /properties/agency/{agencyName}", s.GetAllAgencyProperties)
 	mux.HandleFunc("POST /properties/city/{cityName}", s.GetAllCityProperties)
-	mux.HandleFunc("POST /properties/neighbourhood/{NeighbourhoodName}", s.GetAllNeighbourhoodProperties)
+	mux.HandleFunc("POST /properties/neighbourhood/{neighbourhoodName}", s.GetAllNeighbourhoodProperties)
 	mux.HandleFunc("POST /properties/geo-filter/{radius}", s.GetAllRadiusProperties)
 
 	// Broker enpoints
@@ -394,7 +396,15 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 
 func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	city := pgtype.Text{String: strings.ToLower(strings.TrimSpace(r.PathValue("cityName"))), Valid: true}
+	var city *string
+	cityName := strings.TrimSpace(r.PathValue("cityName"))
+	if cityName == "" {
+		http.Error(w, "City name is required", http.StatusBadRequest)
+		return
+	} else {
+		lowerCaseCityName := strings.ToLower(cityName)
+		city = &lowerCaseCityName
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -416,28 +426,38 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 		Offset:   req.StartPosition,
 	})
 	if err != nil {
-		log.Printf("Failed to get city properties: %v", err)
 		http.Error(w, "Failed to get city properties", http.StatusInternalServerError)
+		return
 	}
 
 	if properties == nil {
 		http.Error(w, "City properties not found", http.StatusNotFound)
+		return
 	}
 
 	resp, err := json.Marshal(properties)
 	if err != nil {
 		http.Error(w, "Failed to marshal city properties response", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
-		log.Printf("Failed to write response: %v", err)
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
 	}
 }
 
 func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	neighbourhood := pgtype.Text{String: strings.ToLower(strings.TrimSpace(r.PathValue("NeighbourhoodName"))), Valid: true}
+	var neighbourhood *string
+	neighbourhoodName := strings.TrimSpace(r.PathValue("neighbourhoodName"))
+	if neighbourhoodName == "" {
+		http.Error(w, "Neighbourhood name is required", http.StatusBadRequest)
+		return
+	} else {
+		lowerCaseCityName := strings.ToLower(neighbourhoodName)
+		neighbourhood = &lowerCaseCityName
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -481,14 +501,11 @@ func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Re
 func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	radius := strings.TrimSpace(r.PathValue("radius"))
-	var radiusNumeric pgtype.Numeric
 
 	floatValue, err := strconv.ParseFloat(radius, 64)
 	if err != nil {
 		http.Error(w, "Invalid radius value", http.StatusBadRequest)
 	}
-
-	radiusNumeric.Scan(strconv.FormatFloat(floatValue, 'f', -1, 64))
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -507,7 +524,7 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 	properties, err := s.queries.GetAllRadiusProperties(ctx, repository.GetAllRadiusPropertiesParams{
 		Latitude:  req.Latitude,
 		Longitude: req.Longitude,
-		Radius:    radiusNumeric,
+		Radius:    floatValue,
 	})
 	if err != nil {
 		log.Printf("Failed to get radius properties: %v", err)
