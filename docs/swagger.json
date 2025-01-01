@@ -270,6 +270,68 @@
                 }
             }
         },
+        "/properties/city/{cityName}": {
+            "post": {
+                "description": "Retrieves a list of properties for a specific city with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Properties"
+                ],
+                "summary": "Get all properties by city",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City Name",
+                        "name": "cityName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Pagination parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.RequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/repository.Property"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid city name or request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "City properties not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/properties/coordinates": {
             "post": {
                 "description": "Retrieves a property based on latitude and longitude",
@@ -309,6 +371,114 @@
                     },
                     "404": {
                         "description": "Property not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/properties/create": {
+            "post": {
+                "description": "Creates a new property given a json request body",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dev"
+                ],
+                "summary": "Create a new property",
+                "parameters": [
+                    {
+                        "description": "Property request body",
+                        "name": "params",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/repository.CreatePropertyParams"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New property id",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/properties/neighbourhood/{neighbourhoodName}": {
+            "post": {
+                "description": "Retrieves a list of properties for a specific neighbourhood with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Properties"
+                ],
+                "summary": "Get all properties by neighbourhood",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Neighbourhood Name",
+                        "name": "neighbourhoodName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Pagination parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.RequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/repository.Property"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid neighbourhood name or request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Neighbourhood properties not found",
                         "schema": {
                             "type": "string"
                         }
@@ -374,6 +544,56 @@
         }
     },
     "definitions": {
+        "repository.CreatePropertyParams": {
+            "type": "object",
+            "properties": {
+                "apartment_number": {
+                    "type": "string"
+                },
+                "bathroom_number": {
+                    "type": "integer"
+                },
+                "bedroom_number": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "city_name": {
+                    "type": "string"
+                },
+                "civic_number": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "string"
+                },
+                "longitude": {
+                    "type": "string"
+                },
+                "neighbourhood_name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "room_number": {
+                    "type": "integer"
+                },
+                "street_name": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "repository.Property": {
             "type": "object",
             "properties": {
@@ -452,20 +672,20 @@
             "type": "object",
             "properties": {
                 "latitude": {
-                    "type": "number"
+                    "type": "string"
                 },
                 "longitude": {
-                    "type": "number"
+                    "type": "string"
                 }
             }
         },
         "server.RequestBody": {
             "type": "object",
             "properties": {
-                "numberOfItems": {
+                "number_of_items": {
                     "type": "integer"
                 },
-                "startPosition": {
+                "start_position": {
                     "type": "integer"
                 }
             }

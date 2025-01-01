@@ -10,6 +10,8 @@ sql:
         out: "internal/repository"
         sql_package: "pgx/v5"
         overrides:
+          - column: "property.id"
+            go_struct_tag: 'json:"mls"'
           - db_type: "uuid"
             go_type:
               import: "github.com/google/uuid"

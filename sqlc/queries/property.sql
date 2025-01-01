@@ -17,7 +17,7 @@ SELECT property.* FROM property
 INNER JOIN broker_property
 ON property.id = broker_property.property_id
 WHERE broker_property.broker_id = $1
-LIMIT $2 OFFSET $3;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetAllAgencyProperties :many
 SELECT property.* FROM property
@@ -26,22 +26,22 @@ ON property.id = broker_property.property_id
 INNER JOIN broker
 ON broker_property.broker_id = broker.id
 WHERE LOWER(broker.agency_name) = $1
-LIMIT $2 OFFSET $3;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetAllCategoryProperties :many
 SELECT * FROM property
 WHERE LOWER(property.category) = $1
-LIMIT $2 OFFSET $3;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetAllCityProperties :many
 SELECT * FROM property
 WHERE LOWER(property.city_name) = $1
-LIMIT $2 OFFSET $3;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetAllNeighbourhoodProperties :many
 SELECT * FROM property
 WHERE LOWER(property.neighbourhood_name) = $1
-LIMIT $2 OFFSET $3;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetAllRadiusProperties :many
 SELECT *

@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -24,9 +23,9 @@ type Coordinates struct {
 }
 
 type GeoFilterCoordinates struct {
-	Longitude float64
-	Latitude  float64
-	Radius    pgtype.Numeric
+	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude"`
+	Radius    string  `json:"radius"`
 }
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -43,6 +42,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /properties/city/{cityName}", s.GetAllCityProperties)
 	mux.HandleFunc("POST /properties/neighbourhood/{neighbourhoodName}", s.GetAllNeighbourhoodProperties)
 	mux.HandleFunc("POST /properties/geo-filter/{radius}", s.GetAllRadiusProperties)
+	mux.HandleFunc("POST /properties/create", s.CreateProperty)
 
 	// Broker enpoints
 	mux.HandleFunc("/brokers", s.GetBrokers)
@@ -258,9 +258,9 @@ func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) 
 	}
 
 	properties, err := s.queries.GetAllBrokerProperties(ctx, repository.GetAllBrokerPropertiesParams{
-		BrokerID: brokerId,
-		Limit:    req.NumberOfItems,
-		Offset:   req.StartPosition,
+		BrokerID:      brokerId,
+		NumberOfItems: req.NumberOfItems,
+		StartPosition: req.StartPosition,
 	})
 	if err != nil {
 		log.Printf("Failed to get broker properties: %v", err)
@@ -314,9 +314,9 @@ func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) 
 	}
 
 	properties, err := s.queries.GetAllAgencyProperties(ctx, repository.GetAllAgencyPropertiesParams{
-		AgencyName: agency,
-		Limit:      req.NumberOfItems,
-		Offset:     req.StartPosition,
+		AgencyName:    agency,
+		NumberOfItems: req.NumberOfItems,
+		StartPosition: req.StartPosition,
 	})
 	if err != nil {
 		log.Printf("Failed to get agency properties: %v", err)
@@ -370,9 +370,9 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 	}
 
 	properties, err := s.queries.GetAllCategoryProperties(ctx, repository.GetAllCategoryPropertiesParams{
-		Category: category,
-		Limit:    req.NumberOfItems,
-		Offset:   req.StartPosition,
+		Category:      category,
+		NumberOfItems: req.NumberOfItems,
+		StartPosition: req.StartPosition,
 	})
 	if err != nil {
 		log.Printf("Failed to get category properties: %v", err)
@@ -394,6 +394,19 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// GetAllCityProperties godoc
+// @Summary      Get all properties by city
+// @Description  Retrieves a list of properties for a specific city with pagination
+// @Tags         Properties
+// @Accept       json
+// @Produce      json
+// @Param        cityName path string true "City Name"
+// @Param        request body RequestBody true "Pagination parameters"
+// @Success      200 {array} repository.Property
+// @Failure      400 {object} string "Invalid city name or request body"
+// @Failure      404 {object} string "City properties not found"
+// @Failure      500 {object} string "Internal server error"
+// @Router       /properties/city/{cityName} [post]
 func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	var city *string
@@ -421,9 +434,9 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	}
 
 	properties, err := s.queries.GetAllCityProperties(ctx, repository.GetAllCityPropertiesParams{
-		CityName: city,
-		Limit:    req.NumberOfItems,
-		Offset:   req.StartPosition,
+		CityName:      city,
+		NumberOfItems: req.NumberOfItems,
+		StartPosition: req.StartPosition,
 	})
 	if err != nil {
 		http.Error(w, "Failed to get city properties", http.StatusInternalServerError)
@@ -447,6 +460,19 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetAllNeighbourhoodProperties godoc
+// @Summary      Get all properties by neighbourhood
+// @Description  Retrieves a list of properties for a specific neighbourhood with pagination
+// @Tags         Properties
+// @Accept       json
+// @Produce      json
+// @Param        neighbourhoodName path string true "Neighbourhood Name"
+// @Param        request body RequestBody true "Pagination parameters"
+// @Success      200 {array} repository.Property
+// @Failure      400 {object} string "Invalid neighbourhood name or request body"
+// @Failure      404 {object} string "Neighbourhood properties not found"
+// @Failure      500 {object} string "Internal server error"
+// @Router       /properties/neighbourhood/{neighbourhoodName} [post]
 func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	var neighbourhood *string
@@ -475,8 +501,8 @@ func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Re
 
 	properties, err := s.queries.GetAllNeighbourhoodProperties(ctx, repository.GetAllNeighbourhoodPropertiesParams{
 		NeighbourhoodName: neighbourhood,
-		Limit:             req.NumberOfItems,
-		Offset:            req.StartPosition,
+		NumberOfItems:     req.NumberOfItems,
+		StartPosition:     req.StartPosition,
 	})
 	if err != nil {
 		log.Printf("Failed to get neighbourhood properties: %v", err)
@@ -539,6 +565,52 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, "Failed to marshal radius properties response", http.StatusInternalServerError)
 	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(resp); err != nil {
+		log.Printf("Failed to write response: %v", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+	}
+}
+
+// CreateProperty godoc
+// @Summary      Create a new property
+// @Description  Creates a new property given a json request body
+// @Tags         dev
+// @Accept       json
+// @Produce      json
+// @Param        params body repository.CreatePropertyParams true "Property request body"
+// @Success      200 {integer} string "New property id"
+// @Failure      400 {object} string "Invalid request body"
+// @Failure      500 {object} string "Internal server error"
+// @Router       /properties/create [post]
+func (s *Server) CreateProperty(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var req repository.CreatePropertyParams
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	propertyId, err := s.queries.CreateProperty(ctx, req)
+	if err != nil {
+		http.Error(w, "Failed to create property", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(propertyId)
+	if err != nil {
+		http.Error(w, "Failed to marshal create property response", http.StatusInternalServerError)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
 		log.Printf("Failed to write response: %v", err)

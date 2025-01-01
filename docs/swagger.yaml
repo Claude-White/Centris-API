@@ -1,4 +1,37 @@
 definitions:
+  repository.CreatePropertyParams:
+    properties:
+      apartment_number:
+        type: string
+      bathroom_number:
+        type: integer
+      bedroom_number:
+        type: integer
+      category:
+        type: string
+      city_name:
+        type: string
+      civic_number:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      latitude:
+        type: string
+      longitude:
+        type: string
+      neighbourhood_name:
+        type: string
+      price:
+        type: string
+      room_number:
+        type: integer
+      street_name:
+        type: string
+      title:
+        type: string
+    type: object
   repository.Property:
     properties:
       apartment_number:
@@ -51,15 +84,15 @@ definitions:
   server.Coordinates:
     properties:
       latitude:
-        type: number
+        type: string
       longitude:
-        type: number
+        type: string
     type: object
   server.RequestBody:
     properties:
-      numberOfItems:
+      number_of_items:
         type: integer
-      startPosition:
+      start_position:
         type: integer
     type: object
 info:
@@ -274,6 +307,47 @@ paths:
       summary: Get all properties by category
       tags:
       - Properties
+  /properties/city/{cityName}:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties for a specific city with pagination
+      parameters:
+      - description: City Name
+        in: path
+        name: cityName
+        required: true
+        type: string
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid city name or request body
+          schema:
+            type: string
+        "404":
+          description: City properties not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties by city
+      tags:
+      - Properties
   /properties/coordinates:
     post:
       consumes:
@@ -306,6 +380,78 @@ paths:
           schema:
             type: string
       summary: Get a property by coordinates
+      tags:
+      - Properties
+  /properties/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new property given a json request body
+      parameters:
+      - description: Property request body
+        in: body
+        name: params
+        required: true
+        schema:
+          $ref: '#/definitions/repository.CreatePropertyParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New property id
+          schema:
+            type: integer
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Create a new property
+      tags:
+      - dev
+  /properties/neighbourhood/{neighbourhoodName}:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties for a specific neighbourhood with
+        pagination
+      parameters:
+      - description: Neighbourhood Name
+        in: path
+        name: neighbourhoodName
+        required: true
+        type: string
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid neighbourhood name or request body
+          schema:
+            type: string
+        "404":
+          description: Neighbourhood properties not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties by neighbourhood
       tags:
       - Properties
 swagger: "2.0"

@@ -282,7 +282,7 @@ type BrokerProperty struct {
 
 type Property struct {
 	// MLS number
-	ID                int64      `json:"id"`
+	ID                int64      `json:"mls"`
 	Title             string     `json:"title"`
 	Category          string     `json:"category"`
 	CivicNumber       *string    `json:"civic_number"`
