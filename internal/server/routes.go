@@ -18,14 +18,14 @@ type RequestBody struct {
 	NumberOfItems int32 `json:"number_of_items"`
 }
 type Coordinates struct {
-	Longitude string `json:"longitude"`
-	Latitude  string `json:"latitude"`
+	Longitude float32 `json:"longitude"`
+	Latitude  float32 `json:"latitude"`
 }
 
 type GeoFilterCoordinates struct {
-	Longitude float64 `json:"longitude"`
-	Latitude  float64 `json:"latitude"`
-	Radius    string  `json:"radius"`
+	Longitude float32 `json:"longitude"`
+	Latitude  float32 `json:"latitude"`
+	Radius    float32 `json:"radius"`
 }
 
 func (s *Server) RegisterRoutes() http.Handler {

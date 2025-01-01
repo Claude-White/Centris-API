@@ -290,13 +290,13 @@ type Property struct {
 	ApartmentNumber   *string    `json:"apartment_number"`
 	CityName          *string    `json:"city_name"`
 	NeighbourhoodName *string    `json:"neighbourhood_name"`
-	Price             string     `json:"price"`
+	Price             float32    `json:"price"`
 	Description       *string    `json:"description"`
 	BedroomNumber     *int32     `json:"bedroom_number"`
 	RoomNumber        *int32     `json:"room_number"`
 	BathroomNumber    *int32     `json:"bathroom_number"`
-	Latitude          string     `json:"latitude"`
-	Longitude         string     `json:"longitude"`
+	Latitude          float32    `json:"latitude"`
+	Longitude         float32    `json:"longitude"`
 	CreatedAt         *time.Time `json:"created_at"`
 	UpdatedAt         *time.Time `json:"updated_at"`
 }
@@ -305,8 +305,8 @@ type PropertyExpense struct {
 	ID           uuid.UUID  `json:"id"`
 	PropertyID   int64      `json:"property_id"`
 	Type         string     `json:"type"`
-	AnnualPrice  string     `json:"annual_price"`
-	MonthlyPrice string     `json:"monthly_price"`
+	AnnualPrice  float32    `json:"annual_price"`
+	MonthlyPrice float32    `json:"monthly_price"`
 	CreatedAt    *time.Time `json:"created_at"`
 }
 

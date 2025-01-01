@@ -47,11 +47,11 @@ sql:
           - db_type: "pg_catalog.numeric"
             nullable: true
             go_type:
-              type: "string"
+              type: "float32"
               pointer: true
           - db_type: "pg_catalog.numeric"
             nullable: false
-            go_type: "string"
+            go_type: "float32"
 
           - db_type: "pg_catalog.timestamptz"
             nullable: true
