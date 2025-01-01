@@ -16,7 +16,7 @@ RETURNING id
 `
 
 type CreatePropertyParams struct {
-	ID                int64   `json:"id"`
+	ID                int64   `json:"mls"`
 	Title             string  `json:"title"`
 	Category          string  `json:"category"`
 	CivicNumber       *string `json:"civic_number"`
@@ -63,17 +63,17 @@ ON property.id = broker_property.property_id
 INNER JOIN broker
 ON broker_property.broker_id = broker.id
 WHERE LOWER(broker.agency_name) = $1
-LIMIT $2 OFFSET $3
+LIMIT $3::int OFFSET $2::int
 `
 
 type GetAllAgencyPropertiesParams struct {
-	AgencyName string `json:"agency_name"`
-	Limit      int32  `json:"limit"`
-	Offset     int32  `json:"offset"`
+	AgencyName    string `json:"agency_name"`
+	StartPosition int32  `json:"start_position"`
+	NumberOfItems int32  `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllAgencyProperties(ctx context.Context, arg GetAllAgencyPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllAgencyProperties, arg.AgencyName, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllAgencyProperties, arg.AgencyName, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}
@@ -115,17 +115,17 @@ SELECT property.id, property.title, property.category, property.civic_number, pr
 INNER JOIN broker_property
 ON property.id = broker_property.property_id
 WHERE broker_property.broker_id = $1
-LIMIT $2 OFFSET $3
+LIMIT $3::int OFFSET $2::int
 `
 
 type GetAllBrokerPropertiesParams struct {
-	BrokerID int64 `json:"broker_id"`
-	Limit    int32 `json:"limit"`
-	Offset   int32 `json:"offset"`
+	BrokerID      int64 `json:"broker_id"`
+	StartPosition int32 `json:"start_position"`
+	NumberOfItems int32 `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllBrokerProperties(ctx context.Context, arg GetAllBrokerPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllBrokerProperties, arg.BrokerID, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllBrokerProperties, arg.BrokerID, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}
@@ -165,17 +165,17 @@ func (q *Queries) GetAllBrokerProperties(ctx context.Context, arg GetAllBrokerPr
 const getAllCategoryProperties = `-- name: GetAllCategoryProperties :many
 SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 WHERE LOWER(property.category) = $1
-LIMIT $2 OFFSET $3
+LIMIT $3::int OFFSET $2::int
 `
 
 type GetAllCategoryPropertiesParams struct {
-	Category string `json:"category"`
-	Limit    int32  `json:"limit"`
-	Offset   int32  `json:"offset"`
+	Category      string `json:"category"`
+	StartPosition int32  `json:"start_position"`
+	NumberOfItems int32  `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllCategoryProperties(ctx context.Context, arg GetAllCategoryPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllCategoryProperties, arg.Category, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllCategoryProperties, arg.Category, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}
@@ -213,19 +213,19 @@ func (q *Queries) GetAllCategoryProperties(ctx context.Context, arg GetAllCatego
 }
 
 const getAllCityProperties = `-- name: GetAllCityProperties :many
-SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at FROM property
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 WHERE LOWER(property.city_name) = $1
-LIMIT $2 OFFSET $3
+LIMIT $3::int OFFSET $2::int
 `
 
 type GetAllCityPropertiesParams struct {
-	CityName *string
-	Limit    int32
-	Offset   int32
+	CityName      *string `json:"city_name"`
+	StartPosition int32   `json:"start_position"`
+	NumberOfItems int32   `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllCityProperties, arg.CityName, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllCityProperties, arg.CityName, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}
@@ -247,8 +247,8 @@ func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityProper
 			&i.BedroomNumber,
 			&i.RoomNumber,
 			&i.BathroomNumber,
-			&i.Longitude,
 			&i.Latitude,
+			&i.Longitude,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -263,19 +263,19 @@ func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityProper
 }
 
 const getAllNeighbourhoodProperties = `-- name: GetAllNeighbourhoodProperties :many
-SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at FROM property
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 WHERE LOWER(property.neighbourhood_name) = $1
-LIMIT $2 OFFSET $3
+LIMIT $3::int OFFSET $2::int
 `
 
 type GetAllNeighbourhoodPropertiesParams struct {
-	NeighbourhoodName *string
-	Limit             int32
-	Offset            int32
+	NeighbourhoodName *string `json:"neighbourhood_name"`
+	StartPosition     int32   `json:"start_position"`
+	NumberOfItems     int32   `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllNeighbourhoodProperties(ctx context.Context, arg GetAllNeighbourhoodPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllNeighbourhoodProperties, arg.NeighbourhoodName, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllNeighbourhoodProperties, arg.NeighbourhoodName, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}
@@ -297,8 +297,8 @@ func (q *Queries) GetAllNeighbourhoodProperties(ctx context.Context, arg GetAllN
 			&i.BedroomNumber,
 			&i.RoomNumber,
 			&i.BathroomNumber,
-			&i.Longitude,
 			&i.Latitude,
+			&i.Longitude,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -361,7 +361,7 @@ func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesPara
 }
 
 const getAllRadiusProperties = `-- name: GetAllRadiusProperties :many
-SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at
 FROM property
 WHERE (
     6371 * acos(
@@ -373,13 +373,13 @@ WHERE (
 `
 
 type GetAllRadiusPropertiesParams struct {
-	Latitude   float64
-	Longitude float64
-	Radius  float64
+	Radians   float64 `json:"radians"`
+	Radians_2 float64 `json:"radians_2"`
+	Latitude  string  `json:"latitude"`
 }
 
 func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllRadiusProperties, arg.Latitude, arg.Longitude, arg.Radius)
+	rows, err := q.db.Query(ctx, getAllRadiusProperties, arg.Radians, arg.Radians_2, arg.Latitude)
 	if err != nil {
 		return nil, err
 	}
@@ -401,8 +401,8 @@ func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPr
 			&i.BedroomNumber,
 			&i.RoomNumber,
 			&i.BathroomNumber,
-			&i.Longitude,
 			&i.Latitude,
+			&i.Longitude,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
