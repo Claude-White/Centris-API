@@ -250,6 +250,106 @@ func (q *Queries) GetAllCategoryProperties(ctx context.Context, arg GetAllCatego
 	return items, nil
 }
 
+const getAllCityProperties = `-- name: GetAllCityProperties :many
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at FROM property
+WHERE LOWER(property.city_name) = $1
+LIMIT $2 OFFSET $3
+`
+
+type GetAllCityPropertiesParams struct {
+	CityName pgtype.Text
+	Limit    int32
+	Offset   int32
+}
+
+func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityPropertiesParams) ([]Property, error) {
+	rows, err := q.db.Query(ctx, getAllCityProperties, arg.CityName, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Property
+	for rows.Next() {
+		var i Property
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Category,
+			&i.CivicNumber,
+			&i.StreetName,
+			&i.ApartmentNumber,
+			&i.CityName,
+			&i.NeighbourhoodName,
+			&i.Price,
+			&i.Description,
+			&i.BedroomNumber,
+			&i.RoomNumber,
+			&i.BathroomNumber,
+			&i.Longitude,
+			&i.Latitude,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllNeighbourhoodProperties = `-- name: GetAllNeighbourhoodProperties :many
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at FROM property
+WHERE LOWER(property.neighbourhood_name) = $1
+LIMIT $2 OFFSET $3
+`
+
+type GetAllNeighbourhoodPropertiesParams struct {
+	NeighbourhoodName pgtype.Text
+	Limit             int32
+	Offset            int32
+}
+
+func (q *Queries) GetAllNeighbourhoodProperties(ctx context.Context, arg GetAllNeighbourhoodPropertiesParams) ([]Property, error) {
+	rows, err := q.db.Query(ctx, getAllNeighbourhoodProperties, arg.NeighbourhoodName, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Property
+	for rows.Next() {
+		var i Property
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Category,
+			&i.CivicNumber,
+			&i.StreetName,
+			&i.ApartmentNumber,
+			&i.CityName,
+			&i.NeighbourhoodName,
+			&i.Price,
+			&i.Description,
+			&i.BedroomNumber,
+			&i.RoomNumber,
+			&i.BathroomNumber,
+			&i.Longitude,
+			&i.Latitude,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllProperties = `-- name: GetAllProperties :many
 SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at FROM property
 LIMIT $1 OFFSET $2
@@ -262,6 +362,62 @@ type GetAllPropertiesParams struct {
 
 func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesParams) ([]Property, error) {
 	rows, err := q.db.Query(ctx, getAllProperties, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Property
+	for rows.Next() {
+		var i Property
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Category,
+			&i.CivicNumber,
+			&i.StreetName,
+			&i.ApartmentNumber,
+			&i.CityName,
+			&i.NeighbourhoodName,
+			&i.Price,
+			&i.Description,
+			&i.BedroomNumber,
+			&i.RoomNumber,
+			&i.BathroomNumber,
+			&i.Longitude,
+			&i.Latitude,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllRadiusProperties = `-- name: GetAllRadiusProperties :many
+SELECT id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude, created_at, updated_at
+FROM property
+WHERE (
+    6371 * acos(
+        cos(radians($1)) * cos(radians(property.latitude)) *
+        cos(radians(property.longitude) - radians($2)) +
+        sin(radians($1)) * sin(radians(latitude))
+    )
+) <= $3
+`
+
+type GetAllRadiusPropertiesParams struct {
+	Latitude   float64
+	Longitude float64
+	Radius  pgtype.Numeric
+}
+
+func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPropertiesParams) ([]Property, error) {
+	rows, err := q.db.Query(ctx, getAllRadiusProperties, arg.Latitude, arg.Longitude, arg.Radius)
 	if err != nil {
 		return nil, err
 	}

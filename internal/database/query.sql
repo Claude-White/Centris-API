@@ -69,6 +69,27 @@ SELECT * FROM property
 WHERE LOWER(property.category) = $1
 LIMIT $2 OFFSET $3;
 
+-- name: GetAllCityProperties :many
+SELECT * FROM property
+WHERE LOWER(property.city_name) = $1
+LIMIT $2 OFFSET $3;
+
+-- name: GetAllNeighbourhoodProperties :many
+SELECT * FROM property
+WHERE LOWER(property.neighbourhood_name) = $1
+LIMIT $2 OFFSET $3;
+
+-- name: GetAllRadiusProperties :many
+SELECT *
+FROM property
+WHERE (
+    6371 * acos(
+        cos(radians($1)) * cos(radians(property.latitude)) *
+        cos(radians(property.longitude) - radians($2)) +
+        sin(radians($1)) * sin(radians(latitude))
+    )
+) <= $3;
+
 -- name: CreateProperty :one
 INSERT INTO property (id, title, category, civic_number, street_name, apartment_number, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
