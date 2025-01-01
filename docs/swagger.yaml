@@ -1,39 +1,40 @@
 definitions:
   repository.Property:
     properties:
-      apartmentNumber:
+      apartment_number:
         type: string
-      bathroomNumber:
+      bathroom_number:
         type: integer
-      bedroomNumber:
+      bedroom_number:
         type: integer
       category:
         type: string
-      cityName:
+      city_name:
         type: string
-      civicNumber:
+      civic_number:
         type: string
-      createdAt:
+      created_at:
         type: string
       description:
         type: string
       id:
+        description: MLS number
         type: integer
       latitude:
-        type: number
+        type: string
       longitude:
-        type: number
-      neighbourhoodName:
+        type: string
+      neighbourhood_name:
         type: string
       price:
-        type: number
-      roomNumber:
+        type: string
+      room_number:
         type: integer
-      streetName:
+      street_name:
         type: string
       title:
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   server.Broker:
