@@ -237,91 +237,90 @@ func (ns NullPropertyStatus) Value() (driver.Value, error) {
 }
 
 type Broker struct {
-	ID                int64
-	FirstName         string
-	MiddleName        pgtype.Text
-	LastName          string
-	Title             string
-	ProfilePhoto      pgtype.Text
-	ComplementaryInfo pgtype.Text
-	ServedAreas       pgtype.Text
-	Presentation      pgtype.Text
-	CorporationName   pgtype.Text
-	AgencyName        string
-	AgencyAddress     string
-	AgencyLogo        pgtype.Text
-	CreatedAt         pgtype.Timestamptz
-	UpdatedAt         pgtype.Timestamptz
+	ID                int64           `json:"id"`
+	FirstName         string          `json:"firstName"`
+	MiddleName        pgtype.Text     `json:"middleName" swaggertype:"string"`
+	LastName          string          `json:"lastName"`
+	Title             string          `json:"title"`
+	ProfilePhoto      pgtype.Text     `json:"profilePhoto" swaggertype:"string"`
+	ComplementaryInfo pgtype.Text     `json:"complementaryInfo" swaggertype:"string"`
+	ServedAreas       pgtype.Text     `json:"servedAreas" swaggertype:"string"`
+	Presentation      pgtype.Text     `json:"presentation" swaggertype:"string"`
+	CorporationName   pgtype.Text     `json:"corporationName" swaggertype:"string"`
+	AgencyName        string          `json:"agencyName"`
+	AgencyAddress     string          `json:"agencyAddress"`
+	AgencyLogo        pgtype.Text     `json:"agencyLogo" swaggertype:"string"`
+	CreatedAt         pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	UpdatedAt         pgtype.Timestamptz `json:"updatedAt" swaggertype:"string"`
 }
 
 type BrokerExternalLink struct {
-	ID        pgtype.UUID
-	BrokerID  int64
-	Type      string
-	Link      string
-	CreatedAt pgtype.Timestamptz
+	ID        pgtype.UUID     `json:"id" swaggertype:"string"`
+	BrokerID  int64           `json:"brokerId"`
+	Type      string          `json:"type"`
+	Link      string          `json:"link"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
 }
 
 type BrokerPhone struct {
-	ID        pgtype.UUID
-	BrokerID  int64
-	Type      string
-	Number    string
-	IsPrimary pgtype.Bool
-	CreatedAt pgtype.Timestamptz
+	ID        pgtype.UUID     `json:"id" swaggertype:"string"`
+	BrokerID  int64           `json:"brokerId"`
+	Type      string          `json:"type"`
+	Number    string          `json:"number"`
+	IsPrimary pgtype.Bool     `json:"isPrimary" swaggertype:"boolean"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
 }
 
 type BrokerProperty struct {
-	ID              pgtype.UUID
-	BrokerID        int64
-	PropertyID      int64
-	IsPrimaryBroker pgtype.Bool
-	CreatedAt       pgtype.Timestamptz
+	ID              pgtype.UUID     `json:"id" swaggertype:"string"`
+	BrokerID        int64           `json:"brokerId"`
+	PropertyID      int64           `json:"propertyId"`
+	IsPrimaryBroker pgtype.Bool     `json:"isPrimaryBroker" swaggertype:"boolean"`
+	CreatedAt       pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
 }
 
 type Property struct {
-	// MLS number
-	ID                int64
-	Title             string
-	Category          string
-	CivicNumber       pgtype.Text
-	StreetName        pgtype.Text
-	ApartmentNumber   pgtype.Text
-	CityName          pgtype.Text
-	NeighbourhoodName pgtype.Text
-	Price             pgtype.Numeric
-	Description       pgtype.Text
-	BedroomNumber     pgtype.Int4
-	RoomNumber        pgtype.Int4
-	BathroomNumber    pgtype.Int4
-	Longitude         pgtype.Numeric
-	Latitude          pgtype.Numeric
-	CreatedAt         pgtype.Timestamptz
-	UpdatedAt         pgtype.Timestamptz
+	ID                int64           `json:"id"`
+	Title             string          `json:"title"`
+	Category          string          `json:"category"`
+	CivicNumber       pgtype.Text     `json:"civicNumber" swaggertype:"string"`
+	StreetName        pgtype.Text     `json:"streetName" swaggertype:"string"`
+	ApartmentNumber   pgtype.Text     `json:"apartmentNumber" swaggertype:"string"`
+	CityName          pgtype.Text     `json:"cityName" swaggertype:"string"`
+	NeighbourhoodName pgtype.Text     `json:"neighbourhoodName" swaggertype:"string"`
+	Price             pgtype.Numeric  `json:"price" swaggertype:"number"`
+	Description       pgtype.Text     `json:"description" swaggertype:"string"`
+	BedroomNumber     pgtype.Int4     `json:"bedroomNumber" swaggertype:"integer"`
+	RoomNumber        pgtype.Int4     `json:"roomNumber" swaggertype:"integer"`
+	BathroomNumber    pgtype.Int4     `json:"bathroomNumber" swaggertype:"integer"`
+	Latitude          pgtype.Numeric  `json:"latitude" swaggertype:"number"`
+	Longitude         pgtype.Numeric  `json:"longitude" swaggertype:"number"`
+	CreatedAt         pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
+	UpdatedAt         pgtype.Timestamptz `json:"updatedAt" swaggertype:"string"`
 }
 
 type PropertyExpense struct {
-	ID           pgtype.UUID
-	PropertyID   int64
-	Type         string
-	AnnualPrice  pgtype.Numeric
-	MonthlyPrice pgtype.Numeric
-	CreatedAt    pgtype.Timestamptz
+	ID           pgtype.UUID     `json:"id" swaggertype:"string"`
+	PropertyID   int64           `json:"propertyId"`
+	Type         string          `json:"type"`
+	AnnualPrice  pgtype.Numeric  `json:"annualPrice" swaggertype:"number"`
+	MonthlyPrice pgtype.Numeric  `json:"monthlyPrice" swaggertype:"number"`
+	CreatedAt    pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
 }
 
 type PropertyFeature struct {
-	ID         pgtype.UUID
-	PropertyID int64
-	Title      string
-	Value      string
-	CreatedAt  pgtype.Timestamptz
+	ID         pgtype.UUID     `json:"id" swaggertype:"string"`
+	PropertyID int64           `json:"propertyId"`
+	Title      string          `json:"title"`
+	Value      string          `json:"value"`
+	CreatedAt  pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
 }
 
 type PropertyPhoto struct {
-	ID          pgtype.UUID
-	PropertyID  int64
-	Link        string
-	Description pgtype.Text
-	IsPrimary   pgtype.Bool
-	CreatedAt   pgtype.Timestamptz
+	ID          pgtype.UUID     `json:"id" swaggertype:"string"`
+	PropertyID  int64           `json:"propertyId"`
+	Link        string          `json:"link"`
+	Description pgtype.Text     `json:"description" swaggertype:"string"`
+	IsPrimary   pgtype.Bool     `json:"isPrimary" swaggertype:"boolean"`
+	CreatedAt   pgtype.Timestamptz `json:"createdAt" swaggertype:"string"`
 }
