@@ -50,6 +50,8 @@ func main() {
 	defer conn.Close(context.Background())
 	server := server.NewServer(conn)
 
+	fmt.Printf("http://localhost:8080/swagger\n")
+
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
 
