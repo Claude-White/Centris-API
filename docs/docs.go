@@ -577,20 +577,20 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
-                },
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
+                },
+                "mls": {
+                    "type": "integer"
                 },
                 "neighbourhood_name": {
                     "type": "string"
                 },
                 "price": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "room_number": {
                     "type": "integer"
@@ -630,21 +630,21 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "id": {
-                    "description": "MLS number",
-                    "type": "integer"
-                },
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
+                },
+                "mls": {
+                    "description": "MLS number",
+                    "type": "integer"
                 },
                 "neighbourhood_name": {
                     "type": "string"
                 },
                 "price": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "room_number": {
                     "type": "integer"
@@ -681,10 +681,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
                 }
             }
         },

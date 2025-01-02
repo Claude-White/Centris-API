@@ -15,16 +15,16 @@ definitions:
         type: string
       description:
         type: string
-      id:
-        type: integer
       latitude:
-        type: string
+        type: number
       longitude:
-        type: string
+        type: number
+      mls:
+        type: integer
       neighbourhood_name:
         type: string
       price:
-        type: string
+        type: number
       room_number:
         type: integer
       street_name:
@@ -50,17 +50,17 @@ definitions:
         type: string
       description:
         type: string
-      id:
+      latitude:
+        type: number
+      longitude:
+        type: number
+      mls:
         description: MLS number
         type: integer
-      latitude:
-        type: string
-      longitude:
-        type: string
       neighbourhood_name:
         type: string
       price:
-        type: string
+        type: number
       room_number:
         type: integer
       street_name:
@@ -84,9 +84,9 @@ definitions:
   server.Coordinates:
     properties:
       latitude:
-        type: string
+        type: number
       longitude:
-        type: string
+        type: number
     type: object
   server.RequestBody:
     properties:

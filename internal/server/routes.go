@@ -636,10 +636,8 @@ func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < numberOfBrokers; i++ {
 		startPositions[i] = i
 	}
-	brokers, err := GetBrokersConcurrently(startPositions, 500)
-	if err != nil {
-		log.Fatalf("Error getting broker info: %v", err)
-	}
+	brokers := GetAllBrokers(startPositions, 1500)
+
 	resp, err := json.Marshal(brokers)
 	if err != nil {
 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
