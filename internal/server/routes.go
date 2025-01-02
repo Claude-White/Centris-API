@@ -45,7 +45,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /properties/create", s.CreateProperty)
 
 	// Broker enpoints
-	mux.HandleFunc("/brokers", s.GetBrokers)
+	mux.HandleFunc("GET /brokers/{brokerId}", s.GetBroker)
+	mux.HandleFunc("POST /brokers", s.GetAllBrokers)
 
 	// Wrap the mux with CORS middleware
 	return s.corsMiddleware(mux)
@@ -102,26 +103,24 @@ func (s *Server) GetProperty(w http.ResponseWriter, r *http.Request) {
 	mls, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("mls")), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid MLS number", http.StatusBadRequest)
+		return
 	}
 
 	property, err := s.queries.GetProperty(ctx, mls)
 	if err != nil {
-		log.Printf("Failed to get property: %v", err)
-		http.Error(w, "Failed to get property", http.StatusInternalServerError)
-	}
-
-	if property == (repository.Property{}) {
 		http.Error(w, "Property not found", http.StatusNotFound)
+		return
 	}
 
 	resp, err := json.Marshal(property)
 	if err != nil {
 		http.Error(w, "Failed to marshal property response", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
-		log.Printf("Failed to write response: %v", err)
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -615,38 +614,116 @@ func (s *Server) CreateProperty(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-		return
+
 	}
 }
 
 // ********************** BROKER ENDPOINT FUNCTIONS **********************
 
-// GetBrokers godoc
+// GetAllBrokers godoc
 // @Summary      Get all brokers
-// @Description  Retrieves a list of all brokers
+// @Description  Retrieves a list of brokers with pagination
 // @Tags         Brokers
+// @Accept       json
 // @Produce      json
-// @Success      200 {array} Broker
+// @Param        request body RequestBody true "Pagination parameters"
+// @Success      200 {array} repository.Broker
+// @Failure      400 {object} string "Invalid request body"
 // @Failure      500 {object} string "Internal server error"
-// @Router       /brokers [get]
-func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
-	domain := "www.centris.ca"
-	path := "/fr/courtiers-immobiliers"
-	numberOfBrokers := getTotalNumberOfBrokers(domain, path)
-	startPositions := make([]int, numberOfBrokers)
-	for i := 0; i < numberOfBrokers; i++ {
-		startPositions[i] = i
-	}
-	brokers, err := GetBrokersConcurrently(startPositions, 500)
+// @Router       /brokers [post]
+func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Fatalf("Error getting broker info: %v", err)
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
 	}
+	defer r.Body.Close()
+
+	var req RequestBody
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	brokers, err := s.queries.GetAllBrokers(ctx, repository.GetAllBrokersParams{
+		NumberOfItems: req.NumberOfItems,
+		StartPosition: req.StartPosition,
+	})
+	if err != nil {
+		http.Error(w, "Failed to get brokers", http.StatusInternalServerError)
+		return
+	}
+
 	resp, err := json.Marshal(brokers)
 	if err != nil {
 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(resp); err != nil {
-		log.Printf("Failed to write response: %v", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
 	}
 }
+
+// GetBroker godoc
+// @Summary      Get broker by broker number
+// @Description  Retrieves broker details using the provided broker number
+// @Tags         Brokers
+// @Accept       json
+// @Produce      json
+// @Param        brokerId   path      int     true  "Broker number"
+// @Success      200   {object}  repository.Broker
+// @Failure      400   {string}  string  "Invalid broker number"
+// @Failure      404   {string}  string  "Broker not found"
+// @Failure      500   {string}  string  "Failed to get broker"
+// @Router       /brokers/{brokerId} [get]
+func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	brokerId, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("brokerId")), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid MLS number", http.StatusBadRequest)
+		return
+	}
+
+	broker, err := s.queries.GetBroker(ctx, brokerId)
+	if err != nil {
+		http.Error(w, "Broker not found", http.StatusNotFound)
+		return
+	}
+
+	resp, err := json.Marshal(broker)
+	if err != nil {
+		http.Error(w, "Failed to marshal broker response", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(resp); err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
+// 	domain := "www.centris.ca"
+// 	path := "/fr/courtiers-immobiliers"
+// 	numberOfBrokers := getTotalNumberOfBrokers(domain, path)
+// 	startPositions := make([]int, numberOfBrokers)
+// 	for i := 0; i < numberOfBrokers; i++ {
+// 		startPositions[i] = i
+// 	}
+// 	brokers, err := GetBrokersConcurrently(startPositions, 500)
+// 	if err != nil {
+// 		log.Fatalf("Error getting broker info: %v", err)
+// 	}
+// 	resp, err := json.Marshal(brokers)
+// 	if err != nil {
+// 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
+// 	}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	if _, err := w.Write(resp); err != nil {
+// 		log.Printf("Failed to write response: %v", err)
+// 	}
+// }
