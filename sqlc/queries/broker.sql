@@ -1,6 +1,6 @@
 -- name: GetAllBrokers :many
 SELECT * FROM broker
-LIMIT $1 OFFSET $2;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetBroker :one
 SELECT * FROM broker 

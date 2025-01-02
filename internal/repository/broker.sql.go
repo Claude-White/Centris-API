@@ -11,16 +11,16 @@ import (
 
 const getAllBrokers = `-- name: GetAllBrokers :many
 SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at FROM broker
-LIMIT $1 OFFSET $2
+LIMIT $2::int OFFSET $1::int
 `
 
 type GetAllBrokersParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	StartPosition int32 `json:"start_position"`
+	NumberOfItems int32 `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllBrokers(ctx context.Context, arg GetAllBrokersParams) ([]Broker, error) {
-	rows, err := q.db.Query(ctx, getAllBrokers, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllBrokers, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}

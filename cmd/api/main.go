@@ -13,6 +13,7 @@ import (
 	"centris-api/internal/server"
 
 	_ "centris-api/docs"
+
 	"github.com/jackc/pgx/v5"
 )
 

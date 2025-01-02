@@ -1,4 +1,37 @@
 definitions:
+  repository.Broker:
+    properties:
+      agency_address:
+        type: string
+      agency_logo:
+        type: string
+      agency_name:
+        type: string
+      complementary_info:
+        type: string
+      corporation_name:
+        type: string
+      created_at:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      presentation:
+        type: string
+      profile_photo:
+        type: string
+      served_areas:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
   repository.CreatePropertyParams:
     properties:
       apartment_number:
@@ -15,16 +48,16 @@ definitions:
         type: string
       description:
         type: string
-      id:
-        type: integer
       latitude:
-        type: string
+        type: number
       longitude:
-        type: string
+        type: number
+      mls:
+        type: integer
       neighbourhood_name:
         type: string
       price:
-        type: string
+        type: number
       room_number:
         type: integer
       street_name:
@@ -50,17 +83,17 @@ definitions:
         type: string
       description:
         type: string
-      id:
+      latitude:
+        type: number
+      longitude:
+        type: number
+      mls:
         description: MLS number
         type: integer
-      latitude:
-        type: string
-      longitude:
-        type: string
       neighbourhood_name:
         type: string
       price:
-        type: string
+        type: number
       room_number:
         type: integer
       street_name:
@@ -70,23 +103,12 @@ definitions:
       updated_at:
         type: string
     type: object
-  server.Broker:
-    properties:
-      id:
-        type: integer
-      name:
-        type: string
-      profilePhoto:
-        type: string
-      title:
-        type: string
-    type: object
   server.Coordinates:
     properties:
       latitude:
-        type: string
+        type: number
       longitude:
-        type: string
+        type: number
     type: object
   server.RequestBody:
     properties:
@@ -101,8 +123,17 @@ info:
   version: "0.1"
 paths:
   /brokers:
-    get:
-      description: Retrieves a list of all brokers
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of brokers with pagination
+      parameters:
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RequestBody'
       produces:
       - application/json
       responses:
@@ -110,13 +141,50 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/server.Broker'
+              $ref: '#/definitions/repository.Broker'
             type: array
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
         "500":
           description: Internal server error
           schema:
             type: string
       summary: Get all brokers
+      tags:
+      - Brokers
+  /brokers/{brokerId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves broker details using the provided broker number
+      parameters:
+      - description: Broker number
+        in: path
+        name: brokerId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/repository.Broker'
+        "400":
+          description: Invalid broker number
+          schema:
+            type: string
+        "404":
+          description: Broker not found
+          schema:
+            type: string
+        "500":
+          description: Failed to get broker
+          schema:
+            type: string
+      summary: Get broker by broker number
       tags:
       - Brokers
   /properties:

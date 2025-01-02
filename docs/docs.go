@@ -16,8 +16,11 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/brokers": {
-            "get": {
-                "description": "Retrieves a list of all brokers",
+            "post": {
+                "description": "Retrieves a list of brokers with pagination",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -25,18 +28,85 @@ const docTemplate = `{
                     "Brokers"
                 ],
                 "summary": "Get all brokers",
+                "parameters": [
+                    {
+                        "description": "Pagination parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.RequestBody"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/server.Broker"
+                                "$ref": "#/definitions/repository.Broker"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/brokers/{brokerId}": {
+            "get": {
+                "description": "Retrieves broker details using the provided broker number",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Brokers"
+                ],
+                "summary": "Get broker by broker number",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Broker number",
+                        "name": "brokerId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/repository.Broker"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid broker number",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Broker not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get broker",
                         "schema": {
                             "type": "string"
                         }
@@ -553,6 +623,56 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "repository.Broker": {
+            "type": "object",
+            "properties": {
+                "agency_address": {
+                    "type": "string"
+                },
+                "agency_logo": {
+                    "type": "string"
+                },
+                "agency_name": {
+                    "type": "string"
+                },
+                "complementary_info": {
+                    "type": "string"
+                },
+                "corporation_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "presentation": {
+                    "type": "string"
+                },
+                "profile_photo": {
+                    "type": "string"
+                },
+                "served_areas": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "repository.CreatePropertyParams": {
             "type": "object",
             "properties": {
@@ -577,20 +697,20 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
-                },
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
+                },
+                "mls": {
+                    "type": "integer"
                 },
                 "neighbourhood_name": {
                     "type": "string"
                 },
                 "price": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "room_number": {
                     "type": "integer"
@@ -630,21 +750,21 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "id": {
-                    "description": "MLS number",
-                    "type": "integer"
-                },
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
+                },
+                "mls": {
+                    "description": "MLS number",
+                    "type": "integer"
                 },
                 "neighbourhood_name": {
                     "type": "string"
                 },
                 "price": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "room_number": {
                     "type": "integer"
@@ -660,31 +780,14 @@ const docTemplate = `{
                 }
             }
         },
-        "server.Broker": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "profilePhoto": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
         "server.Coordinates": {
             "type": "object",
             "properties": {
                 "latitude": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "string"
+                    "type": "number"
                 }
             }
         },
