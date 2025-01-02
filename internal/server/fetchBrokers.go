@@ -17,7 +17,7 @@ import (
 )
 
 var httpClient = &http.Client{
-	Timeout: 60 * time.Second, // Reuse HTTP client with a timeout
+	Timeout: 600 * time.Second, // Reuse HTTP client with a timeout
 }
 
 // Fetch broker HTML for a given start position
@@ -91,7 +91,8 @@ func (broker *Broker) getBrokerId(doc *goquery.Document) {
 }
 
 // Fetch broker information for a single position
-func GetBroker(startPosition int) (Broker, error) {
+func GetBroker(startPosition int, ch chan<- Broker, wg *sync.WaitGroup) (Broker, error) {
+	defer wg.Done()
 	// Get HTML from POST request
 	html, err := getBrokerHTML(startPosition)
 	if err != nil {
@@ -113,51 +114,77 @@ func GetBroker(startPosition int) (Broker, error) {
 	broker.getBrokerTitle(doc)
 	broker.getBrokerImage(doc)
 
+	fmt.Println(broker)
+
+	ch <- broker
+
 	return broker, nil
 }
 
-// Fetch brokers concurrently
-func GetBrokersConcurrently(startPositions []int, maxWorkers int) ([]Broker, error) {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
+func GetAllBrokers(startPositions []int, maxWorkers int) []Broker {
 	brokers := []Broker{}
-	errChan := make(chan error, len(startPositions))
-
-	// Limit concurrency by using a buffered channel for workers
-	workerChan := make(chan struct{}, maxWorkers)
+	ch := make(chan Broker, maxWorkers)
+	var wg sync.WaitGroup
 
 	for _, startPosition := range startPositions {
 		wg.Add(1)
-		workerChan <- struct{}{} // Block if we've reached max concurrency
-
-		go func(pos int) {
-			defer wg.Done()
-			defer func() { <-workerChan }() // Release a worker slot
-
-			broker, err := GetBroker(pos)
-			if err != nil {
-				errChan <- fmt.Errorf("error fetching broker at position %d: %v", pos, err)
-				return
-			}
-
-			// Use mutex to prevent race conditions while appending to the slice
-			mu.Lock()
-			brokers = append(brokers, broker)
-			mu.Unlock()
-		}(startPosition)
+		go GetBroker(startPosition, ch, &wg)
 	}
 
-	// Wait for all goroutines to finish
-	wg.Wait()
-	close(errChan)
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
 
-	// Check if any errors occurred
-	if len(errChan) > 0 {
-		return nil, <-errChan
+	for broker := range ch {
+		brokers = append(brokers, broker)
 	}
 
-	return brokers, nil
+	return brokers
 }
+
+// Fetch brokers concurrently
+// func GetBrokersConcurrently(startPositions []int, maxWorkers int) ([]Broker, error) {
+// 	var wg sync.WaitGroup
+// 	var mu sync.Mutex
+// 	brokers := []Broker{}
+// 	errChan := make(chan error, len(startPositions))
+//
+// 	// Limit concurrency by using a buffered channel for workers
+// 	workerChan := make(chan struct{}, maxWorkers)
+//
+// 	for _, startPosition := range startPositions {
+// 		wg.Add(1)
+// 		workerChan <- struct{}{} // Block if we've reached max concurrency
+//
+// 		go func(pos int) {
+// 			defer wg.Done()
+// 			defer func() { <-workerChan }() // Release a worker slot
+//
+// 			broker, err := GetBroker(pos)
+// 			if err != nil {
+// 				errChan <- fmt.Errorf("error fetching broker at position %d: %v", pos, err)
+// 				return
+// 			}
+//
+// 			// Use mutex to prevent race conditions while appending to the slice
+// 			mu.Lock()
+// 			brokers = append(brokers, broker)
+// 			mu.Unlock()
+// 		}(startPosition)
+// 	}
+//
+// 	// Wait for all goroutines to finish
+// 	wg.Wait()
+// 	close(errChan)
+//
+// 	// Check if any errors occurred
+// 	if len(errChan) > 0 {
+// 		return nil, <-errChan
+// 	}
+//
+// 	return brokers, nil
+// }
 
 // Fetch total number of brokers (helper function)
 func getTotalNumberOfBrokers(domain string, path string) int {
