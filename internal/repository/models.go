@@ -268,7 +268,6 @@ type BrokerPhone struct {
 	BrokerID  int64      `json:"broker_id"`
 	Type      string     `json:"type"`
 	Number    string     `json:"number"`
-	IsPrimary *bool      `json:"is_primary"`
 	CreatedAt *time.Time `json:"created_at"`
 }
 
