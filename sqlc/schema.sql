@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS property_photo (
     property_id bigint NOT NULL,
     link varchar(500) NOT NULL,
     description text,
-    is_primary boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_property_photo_property FOREIGN KEY (property_id)
         REFERENCES property(id) ON DELETE CASCADE
@@ -64,7 +63,6 @@ CREATE TABLE IF NOT EXISTS broker_property (
     id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     broker_id bigint NOT NULL,
     property_id bigint NOT NULL,
-    is_primary_broker boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT broker_property_broker_property_unique UNIQUE (broker_id, property_id),
     CONSTRAINT fk_broker_property_broker FOREIGN KEY (broker_id)
