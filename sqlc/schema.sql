@@ -91,7 +91,6 @@ CREATE TABLE IF NOT EXISTS broker_phone (
     broker_id bigint NOT NULL,
     type varchar(50) NOT NULL,
     number varchar(50) NOT NULL,
-    is_primary boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_broker_phone_broker FOREIGN KEY (broker_id)
         REFERENCES broker(id) ON DELETE CASCADE
