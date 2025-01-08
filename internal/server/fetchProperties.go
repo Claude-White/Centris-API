@@ -25,7 +25,7 @@ func init() {
 }
 
 func getAllProperties(domain string) []OutputData {
-	propertyLinks := []OutputData{}
+	var propertyLinks []OutputData
 	ch := make(chan OutputData)
 	var wg sync.WaitGroup
 	chunksData := generateChunks()
