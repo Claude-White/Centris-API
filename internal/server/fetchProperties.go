@@ -4,40 +4,116 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"log"
-	"math"
 	"net/http"
 	"os"
-	"regexp"
+	"strings"
 	"sync"
+
+	"golang.org/x/net/html"
 )
 
-func init() {
-	fmt.Println("Test")
-	log.Default()
-
-	domain := "https://www.centris.ca"
-
-	links := getAllProperties(domain)
-	saveProperties(links)
-}
-
-func getAllProperties(domain string) []OutputData {
-	var propertyLinks []OutputData
-	ch := make(chan OutputData)
-	var wg sync.WaitGroup
-	chunksData := generateChunks()
-	if chunksData == nil {
-		log.Fatal("Error genarating chunks")
+func GetAllProperties() {
+	client := &http.Client{
 	}
 
-	client := &http.Client{}
+	resp, err := http.Get("https://www.centris.ca")
+	if err != nil {
+		log.Fatalf("Failed to make GET request: %v", err)
+	}
 
-	for _, chunk := range chunksData {
-		wg.Add(1)
-		go getLinksFromChunk(domain, chunk, client, ch, &wg)
+	cookies := resp.Header["Set-Cookie"]
+
+	var aspNetCoreSession string
+	var arrAffinitySameSite string
+
+	for _, cookie := range cookies {
+		if strings.Contains(cookie, ".AspNetCore.Session=") {
+			aspNetCoreSession = extractCookieValue(cookie, ".AspNetCore.Session")
+		} else if strings.Contains(cookie, "ARRAffinitySameSite=") {
+			arrAffinitySameSite = extractCookieValue(cookie, "ARRAffinitySameSite")
+		}
+	}
+
+	resp.Body.Close()
+
+	pins := getAllPins(client, aspNetCoreSession, arrAffinitySameSite)
+
+	housesHTML := getAllHouses(client, pins, aspNetCoreSession, arrAffinitySameSite)
+
+	housesJSON, err := json.MarshalIndent(housesHTML, "", "  ")
+	if err != nil {
+		log.Fatalf("Error marshaling markers to JSON: %v", err)
+	}
+
+	fileName := "housesHTML.json"
+	err = os.WriteFile(fileName, housesJSON, 0644)
+	if err != nil {
+		log.Fatalf("Error writing to file: %v", err)
+	}
+
+	fmt.Printf("Markers JSON saved to file: %s\n", fileName)
+}
+
+func getAllPins(client *http.Client, aspNetCoreSession string, arrAffinitySameSite string) []Marker {
+	bodyData := InputData{
+		ZoomLevel: 11,
+		MapBounds: MapBounds{
+			NorthEast: Coordinate{
+				Lat: 51.41553513240069,
+				Lng: -57.19362267293036,
+			},
+			SouthWest: Coordinate{
+				Lat: 44.99651987571269,
+				Lng: -79.53598220832646,
+			},
+		},
+	}
+
+	markerJSON, _ := json.Marshal(bodyData)
+	markerReq, _ := http.NewRequest("POST", "https://www.centris.ca/api/property/map/GetMarkers",
+		bytes.NewBuffer(markerJSON))
+	markerReq.Header.Set("Content-Type", "application/json")
+	markerReq.Header.Set("Cookie", ".AspNetCore.Session="+aspNetCoreSession+"; ARRAffinitySameSite="+arrAffinitySameSite+";")
+
+	resp, err := client.Do(markerReq)
+	if err != nil {
+		fmt.Printf("Error fetching markers: %v\n", err)
+		return nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error status: %d %s\n", resp.StatusCode, resp.Status)
+		resp.Body.Close()
+		return nil
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	var response Response
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		log.Fatalf("Error unmarshaling response: %v", err)
+	}
+
+	markers := response.D.Result.Markers
+
+	return markers
+}
+
+func getAllHouses(client *http.Client, pins []Marker, aspNetCoreSession string, arrAffinitySameSite string) []string {
+	var houseLinks []string
+	ch := make(chan string, 1500)
+	var wg sync.WaitGroup
+
+	
+	for _, pin := range pins {
+		for i := 0; i < pin.PointsCount; i++ {
+			wg.Add(1)
+			go GetAllHouseInPin(client, aspNetCoreSession, arrAffinitySameSite, pin, i, ch, &wg)
+		}
 	}
 
 	go func() {
@@ -45,137 +121,49 @@ func getAllProperties(domain string) []OutputData {
 		close(ch)
 	}()
 
-	for link := range ch {
-		propertyLinks = append(propertyLinks, link)
+	for houseLink := range ch {
+		houseLinks = append(houseLinks, houseLink)
 	}
-
-	return propertyLinks
+	return houseLinks
 }
 
-func getLinksFromChunk(domain string, chunk InputData, client *http.Client, ch chan OutputData, wg *sync.WaitGroup) {
+func GetAllHouseInPin(client *http.Client, aspNetCoreSession string, arrAffinitySameSite string, pin Marker, idx int, ch chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	markerJSON, _ := json.Marshal(chunk)
-	markerReq, _ := http.NewRequest("POST", domain+"/api/property/map/GetMarkers",
-		bytes.NewBuffer(markerJSON))
-	markerReq.Header.Set("Content-Type", "application/json")
+		bodyData := MarkerInfoInputData{
+			PageIndex: idx,
+			ZoomLevel: 11,
+			Latitude: pin.Position.Lat,
+			Longitude: pin.Position.Lng,
+			GeoHash: pin.GeoHash,
+		}
+		pinJSON, _ := json.Marshal(bodyData)
+		pinReq, _ := http.NewRequest("POST", "https://www.centris.ca/property/GetMarkerInfo",
+			bytes.NewBuffer(pinJSON))
+			pinReq.Header.Set("Content-Type", "application/json")
+			pinReq.Header.Set("Cookie", ".AspNetCore.Session="+aspNetCoreSession+"; ARRAffinitySameSite="+arrAffinitySameSite+";")
 
-	resp, err := client.Do(markerReq)
-	if err != nil {
-		fmt.Printf("Error fetching markers: %v\n", err)
-		return
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error status: %d %s\n", resp.StatusCode, resp.Status)
-		resp.Body.Close()
-		return
-	}
-
-	body, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-
-	var markerResp MarkerResponse
-	if err := json.Unmarshal(body, &markerResp); err != nil {
-		log.Fatal("Error parsing marker response")
-	}
-
-	for _, marker := range markerResp.D.Result.Markers {
-		body := getMarkerInfo(domain, marker, client)
-
-		var infoResp MarkerInfoResponse
-		if err := json.Unmarshal(body, &infoResp); err != nil {
-			log.Fatal("Error parsing info response")
+		resp, err := client.Do(pinReq)
+		if err != nil {
+			fmt.Printf("Error fetching markers: %v\n", err)
+			return
 		}
 
-		path := parseLinks(infoResp)
-
-		ch <- OutputData{Link: domain + path}
-	}
-}
-
-func parseLinks(infoResp MarkerInfoResponse) string {
-	decodedHTML := html.UnescapeString(infoResp.D.Result.Html)
-	regex := regexp.MustCompile(`href="([^"]+)"`)
-	match := regex.FindStringSubmatch(decodedHTML)
-	return match[1]
-}
-
-func generateChunks() []InputData {
-	bigSquare := MapBounds{
-		SouthWest: Coordinate{Lat: 44.980811, Lng: -79.670110},
-		NorthEast: Coordinate{Lat: 51.998494, Lng: -57.107759},
-	}
-	chunkSize := Coordinate{
-		Lat: 0.6141262171,
-		Lng: 0.835647583,
-	}
-
-	var chunks []InputData
-	currentLat := bigSquare.SouthWest.Lat
-	southWestLatLimit := bigSquare.NorthEast.Lat
-	southWestLngLimit := bigSquare.NorthEast.Lng
-
-	for currentLat < southWestLatLimit {
-		currentLng := bigSquare.SouthWest.Lng
-		for currentLng < southWestLngLimit {
-			chunk := InputData{
-				ZoomLevel: 11,
-				MapBounds: MapBounds{
-					SouthWest: Coordinate{Lat: currentLat, Lng: currentLng},
-					NorthEast: Coordinate{
-						Lat: math.Min(currentLat+chunkSize.Lat, southWestLatLimit),
-						Lng: math.Min(currentLng+chunkSize.Lng, southWestLngLimit),
-					},
-				},
-			}
-			chunks = append(chunks, chunk)
-			currentLng += chunkSize.Lng
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Error status: %d %s\n", resp.StatusCode, resp.Status)
+			resp.Body.Close()
+			return
 		}
-		currentLat += chunkSize.Lat
-	}
 
-	return chunks
-}
-
-func getMarkerInfo(domain string, marker MarkerPosition, client *http.Client) []byte {
-	infoPayload := map[string]interface{}{
-		"pageIndex": 0,
-		"zoomLevel": 11,
-		"latitude":  marker.Position.Lat,
-		"longitude": marker.Position.Lng,
-		"geoHash":   "f25ds",
-	}
-
-	infoJSON, _ := json.Marshal(infoPayload)
-	infoReq, _ := http.NewRequest("POST", domain+"/property/GetMarkerInfo",
-		bytes.NewBuffer(infoJSON))
-	infoReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(infoReq)
-	if err != nil {
-		fmt.Printf("Error fetching marker info: %v\n", err)
-		return nil
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error status: %d %s\n", resp.StatusCode, resp.Status)
+		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return nil
-	}
 
-	body, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	return body
-}
-
-func saveProperties(arr []OutputData) {
-	properties, err := json.Marshal(arr)
-	if err != nil {
-		log.Fatal("Failed to json parse outputData")
-	}
-
-	if err := os.WriteFile("data.json", properties, 0644); err != nil {
-		fmt.Printf("Error saving file: %v\n", err)
-		return
-	}
+		var response MarkerInfoResponse
+		err = json.Unmarshal(body, &response)
+		if err != nil {
+			log.Fatalf("Error unmarshaling response: %v", err)
+		}
+		houseHTML, _ := html.Parse(strings.NewReader(response.D.Result.Html))
+		houseLink := findElementAttribute(houseHTML, "a", "class", "property-thumbnail-summary-link", "href")
+		fmt.Println(houseLink)
+		ch <- houseLink
 }

@@ -10,9 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"centris-api/internal/server"
-
 	_ "centris-api/docs"
+	"centris-api/internal/server"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -49,6 +48,10 @@ func main() {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
 	}
 	defer conn.Close(context.Background())
+
+	// Only to test getProperties
+	server.GetAllProperties()
+
 	server := server.NewServer(conn)
 
 	fmt.Printf("http://localhost:8080/swagger\n")
