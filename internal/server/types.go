@@ -102,3 +102,41 @@ type Broker struct {
 	ProfilePhoto string
 	// Add other fields as needed
 }
+
+type Response struct {
+	D struct {
+		Result struct {
+			Markers []Marker `json:"Markers"`
+		} `json:"Result"`
+	} `json:"d"`
+}
+
+type Marker struct {
+	ContainsSubject     bool     `json:"ContainsSubject"`
+	GeoHash             string   `json:"GeoHash"`
+	HasStrictQueryMatch bool     `json:"HasStrictQueryMatch"`
+	Key                 Key      `json:"Key"`
+	NoMls               *string  `json:"NoMls"`
+	PointsCount         int      `json:"PointsCount"`
+	Position            Position `json:"Position"`
+	SubjectIndex        int      `json:"SubjectIndex"`
+	Title               *string  `json:"Title"`
+}
+
+type Key struct {
+	X int `json:"X"`
+	Y int `json:"Y"`
+}
+
+type Position struct {
+	Lat float64 `json:"Lat"`
+	Lng float64 `json:"Lng"`
+}
+
+type MarkerInfoInputData struct {
+	PageIndex int `json:"PageIndex"`
+	ZoomLevel int `json:"ZoomLevel"`
+	Latitude float64 `json:"Latitude"`
+	Longitude float64 `json:"Longitude"`
+	GeoHash string `json:"GeoHash"`
+}
