@@ -51,6 +51,19 @@ type BrokerResponse struct {
 	} `json:"d"`
 }
 
+// ResponseData contains the message, result, and succeeded fields
+type ResponseData struct {
+	Message   string     `json:"Message"`
+	Result    ResultData `json:"Result"`
+	Succeeded bool       `json:"Succeeded"`
+}
+
+// ResultData contains the HTML content and title
+type ResultData struct {
+	Html  string `json:"Html"`
+	Title string `json:"Title"`
+}
+
 type OutputData struct {
 	Link string `json:"link"`
 }
@@ -95,13 +108,6 @@ type PropertyPhotos struct {
 }
 
 // BrokerInfo holds all the information we want to collect
-type Broker struct {
-	Id           int
-	Name         string
-	Title        string
-	ProfilePhoto string
-	// Add other fields as needed
-}
 
 type Response struct {
 	D struct {
@@ -134,9 +140,9 @@ type Position struct {
 }
 
 type MarkerInfoInputData struct {
-	PageIndex int `json:"PageIndex"`
-	ZoomLevel int `json:"ZoomLevel"`
-	Latitude float64 `json:"Latitude"`
+	PageIndex int     `json:"PageIndex"`
+	ZoomLevel int     `json:"ZoomLevel"`
+	Latitude  float64 `json:"Latitude"`
 	Longitude float64 `json:"Longitude"`
-	GeoHash string `json:"GeoHash"`
+	GeoHash   string  `json:"GeoHash"`
 }

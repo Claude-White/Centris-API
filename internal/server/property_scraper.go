@@ -17,7 +17,10 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// Global rate limiter
+// func main() {
+// 	GetAllProperties()
+// }
+
 var limiter = rate.NewLimiter(rate.Every(5*time.Millisecond), 20) // 200 requests per second
 
 const (
@@ -26,7 +29,7 @@ const (
 	requestTimeout        = 30 * time.Second
 )
 
-func GetAllProperties() {
+func GetAllProperties() []string {
 	// Create a transport with connection pooling
 	transport := &http.Transport{
 		MaxIdleConns:        maxIdleConns,
@@ -39,38 +42,32 @@ func GetAllProperties() {
 		Timeout:   30 * time.Second, // Add timeout
 	}
 
-	resp, err := http.Get("https://www.centris.ca")
-	if err != nil {
-		log.Fatalf("Failed to make GET request: %v", err)
-	}
-
-	cookies := resp.Header["Set-Cookie"]
-	var aspNetCoreSession, arrAffinitySameSite string
-
-	for _, cookie := range cookies {
-		if strings.Contains(cookie, ".AspNetCore.Session=") {
-			aspNetCoreSession = extractCookieValue(cookie, ".AspNetCore.Session")
-		} else if strings.Contains(cookie, "ARRAffinitySameSite=") {
-			arrAffinitySameSite = extractCookieValue(cookie, "ARRAffinitySameSite")
-		}
-	}
-	resp.Body.Close()
+	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl)
 
 	pins := getAllPins(client, aspNetCoreSession, arrAffinitySameSite)
 	housesHTML := getAllHouses(client, pins, aspNetCoreSession, arrAffinitySameSite)
 
-	housesJSON, err := json.MarshalIndent(housesHTML, "", "  ")
+	// Open the file for writing
+	fileName := "house-links.json"
+	file, err := os.Create(fileName)
 	if err != nil {
-		log.Fatalf("Error marshaling markers to JSON: %v", err)
+		log.Fatalf("Error creating file: %v", err)
 	}
+	defer file.Close()
 
-	fileName := "housesHTML.json"
-	err = os.WriteFile(fileName, housesJSON, 0644)
+	// Create a JSON encoder and disable HTML escaping
+	encoder := json.NewEncoder(file)
+	encoder.SetEscapeHTML(false)
+
+	// Encode the data
+	err = encoder.Encode(housesHTML)
 	if err != nil {
-		log.Fatalf("Error writing to file: %v", err)
+		log.Fatalf("Error encoding JSON: %v", err)
 	}
 
 	fmt.Printf("Markers JSON saved to file: %s\n", fileName)
+
+	return housesHTML
 }
 
 func getAllPins(client *http.Client, aspNetCoreSession string, arrAffinitySameSite string) []Marker {
@@ -146,7 +143,7 @@ func getAllHouses(client *http.Client, pins []Marker, aspNetCoreSession string, 
 					return
 				}
 
-				link := GetAllHouseInPin(client, aspNetCoreSession, arrAffinitySameSite, pin, idx)
+				link := baseUrl + GetAllHouseInPin(client, aspNetCoreSession, arrAffinitySameSite, pin, idx)
 				fmt.Println(link)
 				if link != "" {
 					mu.Lock()
@@ -228,7 +225,7 @@ func GetAllHouseInPin(client *http.Client, aspNetCoreSession string, arrAffinity
 			return ""
 		}
 
-		return findElementAttribute(houseHTML, "a", "class", "property-thumbnail-summary-link", "href")
+		return FindElementAttribute(houseHTML, "a", "class", "property-thumbnail-summary-link", "href")
 	}
 
 	return ""
