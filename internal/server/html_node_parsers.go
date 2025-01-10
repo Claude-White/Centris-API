@@ -1,38 +1,35 @@
 package server
 
 import (
-	"log"
-	"net/http"
-	"strconv"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
-func extractText(n *html.Node) string {
+func ExtractText(n *html.Node) string {
 	if n.Type == html.TextNode {
 		return n.Data
 	}
 	var sb strings.Builder
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		sb.WriteString(strings.TrimSpace(extractText(c)))
+		sb.WriteString(strings.TrimSpace(ExtractText(c)))
 	}
 	return sb.String()
 }
 
-func findElementByClass(n *html.Node, tagName, className string) string {
+func FindElementByClass(n *html.Node, tagName, className string) string {
 	if n.Type == html.ElementNode && n.Data == tagName {
 		// Check if the element has the desired class attribute
 		for _, attr := range n.Attr {
 			if attr.Key == "class" && attr.Val == className {
-				return extractText(n)
+				return ExtractText(n)
 			}
 		}
 	}
 
 	// Traverse child nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if result := findElementByClass(c, tagName, className); result != "" {
+		if result := FindElementByClass(c, tagName, className); result != "" {
 			return result
 		}
 	}
@@ -40,7 +37,7 @@ func findElementByClass(n *html.Node, tagName, className string) string {
 	return ""
 }
 
-func findElementAttribute(n *html.Node, tagName, attrName, attrValue, targetAttr string) string {
+func FindElementAttribute(n *html.Node, tagName, attrName, attrValue, targetAttr string) string {
 	if n.Type == html.ElementNode && n.Data == tagName {
 		// First find if this element has the attribute we're searching for
 		hasMatchingAttr := false
@@ -56,7 +53,7 @@ func findElementAttribute(n *html.Node, tagName, attrName, attrValue, targetAttr
 			if attrValue == "Google Map" {
 				var sb strings.Builder
 				for c := n.FirstChild; c != nil; c = c.NextSibling {
-					sb.WriteString(strings.TrimSpace(extractText(c)))
+					sb.WriteString(strings.TrimSpace(ExtractText(c)))
 				}
 				return sb.String()
 			}
@@ -71,7 +68,7 @@ func findElementAttribute(n *html.Node, tagName, attrName, attrValue, targetAttr
 
 	// Recursively search child nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if result := findElementAttribute(c, tagName, attrName, attrValue, targetAttr); result != "" {
+		if result := FindElementAttribute(c, tagName, attrName, attrValue, targetAttr); result != "" {
 			return result
 		}
 	}
@@ -79,7 +76,7 @@ func findElementAttribute(n *html.Node, tagName, attrName, attrValue, targetAttr
 	return ""
 }
 
-func findSecondP1Div(n *html.Node) *html.Node {
+func FindSecondP1Div(n *html.Node) *html.Node {
 	var p1Count int
 	var findP1 func(*html.Node) *html.Node
 
@@ -108,7 +105,7 @@ func findSecondP1Div(n *html.Node) *html.Node {
 	return findP1(n)
 }
 
-func findElementByClassNode(n *html.Node, tagName, className string) *html.Node {
+func FindElementByClassNode(n *html.Node, tagName, className string) *html.Node {
 	if n.Type == html.ElementNode && n.Data == tagName {
 		for _, attr := range n.Attr {
 			if attr.Key == "class" && strings.Contains(attr.Val, className) {
@@ -118,7 +115,7 @@ func findElementByClassNode(n *html.Node, tagName, className string) *html.Node 
 	}
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if result := findElementByClassNode(c, tagName, className); result != nil {
+		if result := FindElementByClassNode(c, tagName, className); result != nil {
 			return result
 		}
 	}
@@ -126,13 +123,13 @@ func findElementByClassNode(n *html.Node, tagName, className string) *html.Node 
 	return nil
 }
 
-func findElementByTagName(n *html.Node, tagName string) *html.Node {
+func FindElementByTagName(n *html.Node, tagName string) *html.Node {
 	if n.Type == html.ElementNode && n.Data == tagName {
 		return n
 	}
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if result := findElementByTagName(c, tagName); result != nil {
+		if result := FindElementByTagName(c, tagName); result != nil {
 			return result
 		}
 	}
@@ -140,7 +137,7 @@ func findElementByTagName(n *html.Node, tagName string) *html.Node {
 	return nil
 }
 
-func findElementsByAttribute(n *html.Node, attrName, attrValue string) []*html.Node {
+func FindElementsByAttribute(n *html.Node, attrName, attrValue string) []*html.Node {
 	var matches []*html.Node
 
 	if n == nil {
@@ -157,54 +154,9 @@ func findElementsByAttribute(n *html.Node, attrName, attrValue string) []*html.N
 
 	// Recursively search through child nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		childMatches := findElementsByAttribute(c, attrName, attrValue)
+		childMatches := FindElementsByAttribute(c, attrName, attrValue)
 		matches = append(matches, childMatches...)
 	}
 
 	return matches
-}
-
-func generateSession(url string) (string, string, int) {
-	// Make the GET request
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatalf("Failed to make GET request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Extract cookies from the response headers
-	cookies := resp.Header["Set-Cookie"]
-
-	// Variables to store the desired cookies
-	var aspNetCoreSession string
-	var arrAffinitySameSite string
-
-	// Iterate through cookies to find the ones we need
-	for _, cookie := range cookies {
-		if strings.Contains(cookie, ".AspNetCore.Session=") {
-			aspNetCoreSession = extractCookieValue(cookie, ".AspNetCore.Session")
-		} else if strings.Contains(cookie, "ARRAffinitySameSite=") {
-			arrAffinitySameSite = extractCookieValue(cookie, "ARRAffinitySameSite")
-		}
-	}
-
-	numberOfBrokers := 0
-	doc, err := html.Parse(resp.Body)
-	if err != nil {
-		return aspNetCoreSession, arrAffinitySameSite, numberOfBrokers
-	}
-
-	numberOfBrokers, _ = strconv.Atoi(strings.ReplaceAll(strings.ReplaceAll(findElementByClass(doc, "span", "resultCount"), "\u00a0", ""), " ", ""))
-
-	return aspNetCoreSession, arrAffinitySameSite, numberOfBrokers
-}
-
-func extractCookieValue(cookie string, key string) string {
-	parts := strings.Split(cookie, ";")
-	for _, part := range parts {
-		if strings.HasPrefix(part, key+"=") {
-			return strings.TrimPrefix(part, key+"=")
-		}
-	}
-	return ""
 }
