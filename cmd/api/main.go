@@ -43,14 +43,29 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 // @title Swagger Centris API
 // @version 0.1
 func main() {
+	var command string
+	if len(os.Args) > 1 {
+		command = os.Args[1]
+	}
+
+	switch command {
+	case "broker-scraper":
+		server.RunBrokerScraper()
+		fmt.Println("Running Broker Scraper...")
+	case "property-scraper":
+		server.RunPropertyScraper()
+		fmt.Println("Running Property Scraper...")
+	default:
+		httpServer()
+	}
+}
+
+func httpServer() {
 	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
 	}
 	defer conn.Close(context.Background())
-
-	// Only to test getProperties
-	server.GetAllProperties()
 
 	server := server.NewServer(conn)
 
