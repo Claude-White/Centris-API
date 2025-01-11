@@ -14,12 +14,11 @@ import (
 
 const createBrokerPhone = `-- name: CreateBrokerPhone :one
 INSERT INTO broker_phone (id, broker_id, type, number, created_at)
-values ($1, $2, $3, $4, $5)
+values (uuid_generate_v4(), $1, $2, $3, $4)
 RETURNING id
 `
 
 type CreateBrokerPhoneParams struct {
-	ID        uuid.UUID  `json:"id"`
 	BrokerID  int64      `json:"broker_id"`
 	Type      string     `json:"type"`
 	Number    string     `json:"number"`
@@ -28,7 +27,6 @@ type CreateBrokerPhoneParams struct {
 
 func (q *Queries) CreateBrokerPhone(ctx context.Context, arg CreateBrokerPhoneParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, createBrokerPhone,
-		arg.ID,
 		arg.BrokerID,
 		arg.Type,
 		arg.Number,

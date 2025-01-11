@@ -51,10 +51,10 @@ func main() {
 	switch command {
 	case "broker-scraper":
 		server.RunBrokerScraper()
-		fmt.Println("Running Broker Scraper...")
+		fmt.Println("Finished Broker Scraper...")
 	case "property-scraper":
 		server.RunPropertyScraper()
-		fmt.Println("Running Property Scraper...")
+		fmt.Println("Finished Property Scraper...")
 	default:
 		httpServer()
 	}
