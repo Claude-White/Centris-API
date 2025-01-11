@@ -14,12 +14,11 @@ import (
 
 const createBrokerExternalLink = `-- name: CreateBrokerExternalLink :one
 INSERT INTO broker_external_links (id, broker_id, type, link, created_at)
-values ($1, $2, $3, $4, $5)
+values (uuid_generate_v4(), $1, $2, $3, $4)
 RETURNING id
 `
 
 type CreateBrokerExternalLinkParams struct {
-	ID        uuid.UUID  `json:"id"`
 	BrokerID  int64      `json:"broker_id"`
 	Type      string     `json:"type"`
 	Link      string     `json:"link"`
@@ -28,7 +27,6 @@ type CreateBrokerExternalLinkParams struct {
 
 func (q *Queries) CreateBrokerExternalLink(ctx context.Context, arg CreateBrokerExternalLinkParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, createBrokerExternalLink,
-		arg.ID,
 		arg.BrokerID,
 		arg.Type,
 		arg.Link,

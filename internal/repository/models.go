@@ -272,11 +272,10 @@ type BrokerPhone struct {
 }
 
 type BrokerProperty struct {
-	ID              uuid.UUID  `json:"id"`
-	BrokerID        int64      `json:"broker_id"`
-	PropertyID      int64      `json:"property_id"`
-	IsPrimaryBroker *bool      `json:"is_primary_broker"`
-	CreatedAt       *time.Time `json:"created_at"`
+	ID         uuid.UUID  `json:"id"`
+	BrokerID   int64      `json:"broker_id"`
+	PropertyID int64      `json:"property_id"`
+	CreatedAt  *time.Time `json:"created_at"`
 }
 
 type Property struct {
@@ -322,6 +321,5 @@ type PropertyPhoto struct {
 	PropertyID  int64      `json:"property_id"`
 	Link        string     `json:"link"`
 	Description *string    `json:"description"`
-	IsPrimary   *bool      `json:"is_primary"`
 	CreatedAt   *time.Time `json:"created_at"`
 }
