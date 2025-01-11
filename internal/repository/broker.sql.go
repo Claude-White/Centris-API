@@ -57,6 +57,15 @@ func (q *Queries) CreateBroker(ctx context.Context, arg CreateBrokerParams) (int
 	return id, err
 }
 
+const deleteAllBrokers = `-- name: DeleteAllBrokers :exec
+DELETE FROM broker
+`
+
+func (q *Queries) DeleteAllBrokers(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteAllBrokers)
+	return err
+}
+
 const getAllBrokers = `-- name: GetAllBrokers :many
 SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at FROM broker
 LIMIT $2::int OFFSET $1::int

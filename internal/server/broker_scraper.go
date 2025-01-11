@@ -20,9 +20,8 @@ import (
 )
 
 const (
-	baseUrl        = "https://www.centris.ca"
-	PropertyMapUrl = "/fr/propriete~a-vendre?view=Map&uc=0"
-	MarkersUrl     = "/api/property/map/GetMarkers"
+	baseUrl = "https://www.centris.ca"
+
 	MarkerInfoUrl  = "/property/GetMarkerInfo"
 	brokerEndpoint = "/Broker/GetBrokers"
 	BrokerUrl      = "/fr/courtiers-immobiliers?view=Summary&uc=0"
@@ -44,36 +43,6 @@ func RunBrokerScraper() {
 
 	dbServer := CreateServer(conn)
 	dbServer.uploadToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
-
-	// if err := writeToFile(brokers, "brokers.json"); err != nil {
-	// 	log.Fatalf("Failed to write brokers to file: %v", err)
-	// }
-
-	// // Write phone numbers and external links to files
-	// if err := writeToFile(brokersPhoneNumbers, "broker-phones.json"); err != nil {
-	// 	log.Fatalf("Failed to write broker phones to file: %v", err)
-	// }
-
-	// if err := writeToFile(brokersExternalLinks, "broker-external-links.json"); err != nil {
-	// 	log.Fatalf("Failed to write broker external links to file: %v", err)
-	// }
-}
-
-func writeToFile[T any](data []T, filename string) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(data); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
