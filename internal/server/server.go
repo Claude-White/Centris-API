@@ -19,7 +19,7 @@ type Server struct {
 	queries *repository.Queries
 }
 
-func NewServer(db *pgx.Conn) *http.Server {
+func CreateServer(db *pgx.Conn) Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	repo := repository.New(db)
 	NewServer := &Server{
@@ -27,6 +27,12 @@ func NewServer(db *pgx.Conn) *http.Server {
 		db:      db,
 		queries: repo,
 	}
+
+	return *NewServer
+}
+
+func NewServer(db *pgx.Conn) *http.Server {
+	NewServer := CreateServer(db)
 
 	// Declare Server config
 	server := &http.Server{

@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"centris-api/internal/repository"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,13 +15,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/net/html"
 )
 
 const (
-	baseUrl        = "https://www.centris.ca"
-	PropertyMapUrl = "/fr/propriete~a-vendre?view=Map&uc=0"
-	MarkersUrl     = "/api/property/map/GetMarkers"
+	baseUrl = "https://www.centris.ca"
+
 	MarkerInfoUrl  = "/property/GetMarkerInfo"
 	brokerEndpoint = "/Broker/GetBrokers"
 	BrokerUrl      = "/fr/courtiers-immobiliers?view=Summary&uc=0"
@@ -34,35 +35,14 @@ func RunBrokerScraper() {
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Finished getting all brokers in %s\n", elapsedTime)
 
-	if err := writeToFile(brokers, "brokers.json"); err != nil {
-		log.Fatalf("Failed to write brokers to file: %v", err)
+	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if dbErr != nil {
+		log.Fatalf("Failed to connect to the database: %v", dbErr)
 	}
+	defer conn.Close(context.Background())
 
-	// Write phone numbers and external links to files
-	if err := writeToFile(brokersPhoneNumbers, "broker-phones.json"); err != nil {
-		log.Fatalf("Failed to write broker phones to file: %v", err)
-	}
-
-	if err := writeToFile(brokersExternalLinks, "broker-external-links.json"); err != nil {
-		log.Fatalf("Failed to write broker external links to file: %v", err)
-	}
-}
-
-func writeToFile[T any](data []T, filename string) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(data); err != nil {
-		return err
-	}
-
-	return nil
+	dbServer := CreateServer(conn)
+	dbServer.uploadToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
 }
 
 func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
@@ -439,4 +419,84 @@ func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.BrokerExt
 	return brokerExternalLinks
 }
 
-// Firas Trabulsi
+func flattenArray[T any](nested [][]T) []T {
+	totalLength := 0
+	for _, inner := range nested {
+		totalLength += len(inner)
+	}
+
+	flat := make([]T, 0, totalLength)
+	for _, inner := range nested {
+		flat = append(flat, inner...)
+	}
+	return flat
+}
+
+func (s *Server) uploadToDB(brokers []repository.Broker, brokersPhoneNumbers [][]repository.BrokerPhone, brokersExternalLinks [][]repository.BrokerExternalLink) {
+	ctx := context.Background()
+
+	s.queries.DeleteAllBrokers(ctx)
+	SendNotification("Process Complete", "All brokers deleted.")
+
+	for _, broker := range brokers {
+		brokerParams := repository.CreateBrokerParams{
+			ID:                broker.ID,
+			FirstName:         broker.FirstName,
+			LastName:          broker.LastName,
+			MiddleName:        broker.MiddleName,
+			Title:             broker.Title,
+			ProfilePhoto:      broker.ProfilePhoto,
+			ComplementaryInfo: broker.ComplementaryInfo,
+			ServedAreas:       broker.ServedAreas,
+			Presentation:      broker.Presentation,
+			CorporationName:   broker.CorporationName,
+			AgencyName:        broker.AgencyName,
+			AgencyAddress:     broker.AgencyAddress,
+			AgencyLogo:        broker.AgencyLogo,
+			CreatedAt:         broker.CreatedAt,
+			UpdatedAt:         broker.UpdatedAt,
+		}
+
+		id, err := s.queries.CreateBroker(ctx, brokerParams)
+		if err != nil {
+			log.Printf("Failed to insert broker id: %d", brokerParams.ID)
+			log.Println("Error: " + err.Error())
+		}
+		fmt.Printf("Successfully inserted broker: %d\n", id)
+	}
+
+	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
+	for _, brokerPhoneNumber := range flatBrokersPhoneNumbers {
+		brokerPhoneNumberParams := repository.CreateBrokerPhoneParams{
+			BrokerID:  brokerPhoneNumber.BrokerID,
+			Type:      brokerPhoneNumber.Type,
+			Number:    brokerPhoneNumber.Number,
+			CreatedAt: brokerPhoneNumber.CreatedAt,
+		}
+
+		id, err := s.queries.CreateBrokerPhone(ctx, brokerPhoneNumberParams)
+		if err != nil {
+			log.Printf("Failed to insert broker phone number: %s. With Id: %d", brokerPhoneNumberParams.Number, brokerPhoneNumberParams.BrokerID)
+			log.Println("Error: " + err.Error())
+		}
+		fmt.Printf("Successfully inserted broker phone: %d\n", id)
+	}
+
+	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
+	for _, brokerExternalLink := range flatBrokersExternalLinks {
+		brokerExternalLinkParams := repository.CreateBrokerExternalLinkParams{
+			BrokerID:  brokerExternalLink.BrokerID,
+			Type:      brokerExternalLink.Type,
+			Link:      brokerExternalLink.Link,
+			CreatedAt: brokerExternalLink.CreatedAt,
+		}
+
+		id, err := s.queries.CreateBrokerExternalLink(ctx, brokerExternalLinkParams)
+		if err != nil {
+			log.Printf("Failed to insert broker link: %s. With Id: %d", brokerExternalLinkParams.Link, brokerExternalLinkParams.BrokerID)
+			log.Println("Error: " + err.Error())
+		}
+
+		fmt.Printf("Successfully inserted broker external link: %d\n", id)
+	}
+}
