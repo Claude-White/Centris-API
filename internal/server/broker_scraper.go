@@ -434,6 +434,10 @@ func flattenArray[T any](nested [][]T) []T {
 
 func (s *Server) uploadToDB(brokers []repository.Broker, brokersPhoneNumbers [][]repository.BrokerPhone, brokersExternalLinks [][]repository.BrokerExternalLink) {
 	ctx := context.Background()
+
+	s.queries.DeleteAllBrokers(ctx)
+	SendNotification("Process Complete", "All brokers deleted.")
+
 	for _, broker := range brokers {
 		brokerParams := repository.CreateBrokerParams{
 			ID:                broker.ID,

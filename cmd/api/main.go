@@ -52,9 +52,11 @@ func main() {
 	case "broker-scraper":
 		server.RunBrokerScraper()
 		fmt.Println("Finished Broker Scraper...")
+		server.SendNotification("Process Complete", "Broker Scraper complete.")
 	case "property-scraper":
 		server.RunPropertyScraper()
 		fmt.Println("Finished Property Scraper...")
+		server.SendNotification("Process Complete", "Property Scraper complete.")
 	default:
 		httpServer()
 	}
