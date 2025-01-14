@@ -50,7 +50,7 @@ func main() {
 	defer conn.Close(context.Background())
 
 	// Only to test getProperties
-	server.GetAllProperties()
+	server.RunBrokerScraper()
 
 	server := server.NewServer(conn)
 

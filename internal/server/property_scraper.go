@@ -29,7 +29,7 @@ const (
 	requestTimeout        = 30 * time.Second
 )
 
-func GetAllProperties() []string {
+func RunPropertyScraper() []string {
 	// Create a transport with connection pooling
 	transport := &http.Transport{
 		MaxIdleConns:        maxIdleConns,
