@@ -69,9 +69,6 @@ func httpServer() {
 	}
 	defer conn.Close(context.Background())
 
-	// Only to test getProperties
-	server.RunBrokerScraper()
-
 	server := server.NewServer(conn)
 
 	fmt.Printf("http://localhost:8080/swagger\n")
