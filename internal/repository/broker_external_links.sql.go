@@ -36,3 +36,34 @@ func (q *Queries) CreateBrokerExternalLink(ctx context.Context, arg CreateBroker
 	err := row.Scan(&id)
 	return id, err
 }
+
+const getAllBrokerLinksByBrokerId = `-- name: GetAllBrokerLinksByBrokerId :many
+SELECT id, broker_id, type, link, created_at FROM broker_external_links
+WHERE broker_external_links.broker_id = $1
+`
+
+func (q *Queries) GetAllBrokerLinksByBrokerId(ctx context.Context, brokerID int64) ([]BrokerExternalLink, error) {
+	rows, err := q.db.Query(ctx, getAllBrokerLinksByBrokerId, brokerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BrokerExternalLink
+	for rows.Next() {
+		var i BrokerExternalLink
+		if err := rows.Scan(
+			&i.ID,
+			&i.BrokerID,
+			&i.Type,
+			&i.Link,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
