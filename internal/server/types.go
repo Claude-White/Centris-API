@@ -68,45 +68,6 @@ type OutputData struct {
 	Link string `json:"link"`
 }
 
-type Property struct {
-	Id               int
-	Title            string
-	CivicNumber      string
-	Street           string
-	AppartmentNumber string
-	City             string
-	Neighbourhood    string
-	Price            string
-	Description      string
-	NumberOfBedrooms string
-	NumberOfRooms    string
-	NumberOfToilets  string
-	Longitude        string
-	Latitude         string
-}
-
-type PropertyFeatures struct {
-	Id         int
-	PropertyId int
-	Title      string
-	Value      string
-}
-
-type PropertyExpenses struct {
-	Id           int
-	PropertyId   int
-	Type         string
-	AnnualPrice  string
-	MonthlyPrice string
-}
-
-type PropertyPhotos struct {
-	Id          int
-	PropertyId  int
-	PhotoLink   string
-	Description string
-}
-
 // BrokerInfo holds all the information we want to collect
 
 type Response struct {
@@ -145,4 +106,36 @@ type MarkerInfoInputData struct {
 	Latitude  float64 `json:"Latitude"`
 	Longitude float64 `json:"Longitude"`
 	GeoHash   string  `json:"GeoHash"`
+}
+
+type RequestBodyPhoto struct {
+	Lang                   string `json:"lang"`
+	CentrisNo              int64  `json:"centrisNo"`
+	Track                  bool   `json:"track"`
+	AuthorizationMediaCode string `json:"authorizationMediaCode"`
+}
+
+type Resolution struct {
+	Domain      string `json:"Domain"`
+	Width       int    `json:"Width"`
+	Height      int    `json:"Height"`
+	QueryParams string `json:"QueryParams"`
+}
+
+type PropertyResponsePhoto struct {
+	ID        string `json:"Id"`
+	UrlThumb  string `json:"UrlThumb"`
+	Desc      string `json:"Desc"`
+	MaxWidth  int    `json:"MaxWidth"`
+	MaxHeight int    `json:"MaxHeight"`
+	DescSupp  string `json:"DescSupp,omitempty"`
+}
+
+type PhotoResponse struct {
+	PhotoList                        []PropertyResponsePhoto `json:"PhotoList"`
+	UseIntegralForIdenticalDimension bool                    `json:"UseIntegralForIdenticalDimension"`
+	Resolutions                      []Resolution            `json:"Resolutions"`
+	Track                            bool                    `json:"Track"`
+	CentrisNo                        string                  `json:"CentrisNo"`
+	VirtualTourUrl                   *string                 `json:"VirtualTourUrl"`
 }

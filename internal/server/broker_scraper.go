@@ -25,6 +25,7 @@ const (
 	MarkerInfoUrl  = "/property/GetMarkerInfo"
 	brokerEndpoint = "/Broker/GetBrokers"
 	BrokerUrl      = "/fr/courtiers-immobiliers?view=Summary&uc=0"
+	PropertyMapUrl = "/fr/propriete~a-vendre?view=Map&uc=0"
 )
 
 func RunBrokerScraper() {

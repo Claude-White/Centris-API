@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"centris-api/internal/repository"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,17 +10,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/net/html"
 	"golang.org/x/time/rate"
 )
-
-// func main() {
-// 	GetAllProperties()
-// }
 
 var limiter = rate.NewLimiter(rate.Every(5*time.Millisecond), 20) // 200 requests per second
 
@@ -29,7 +29,90 @@ const (
 	requestTimeout        = 30 * time.Second
 )
 
-func RunPropertyScraper() []string {
+func RunPropertyScraper() {
+	transport := &http.Transport{
+		MaxIdleConns:        maxIdleConns,
+		MaxIdleConnsPerHost: maxIdleConns,
+		IdleConnTimeout:     90 * time.Second,
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, 50)
+
+	// Open and read JSON file
+	file, err := os.Open("house-links.json")
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	defer file.Close()
+
+	links := GetAllProperties()
+
+	var properties []repository.Property
+	var propertiesExpenses [][]repository.PropertyExpense
+	var propertiesFeatures [][]repository.PropertyFeature
+	var propertiesPhotos [][]repository.PropertyPhoto
+
+	for _, link := range links {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Wait for rate limiter
+			err := limiter.Wait(context.Background())
+			if err != nil {
+				log.Printf("Rate limiter error for %s: %v", url, err)
+				return
+			}
+
+			// Make the request
+			resp, err := client.Get(url)
+			if err != nil {
+				log.Printf("Error making request to %s: %v", url, err)
+				return
+			}
+			defer resp.Body.Close()
+
+			if strings.Contains(resp.Request.URL.String(), "listingnotfound") {
+				fmt.Printf("Listing not found for URL: %s", url)
+				return
+			}
+
+			// Parse the HTML content
+			doc, err := html.Parse(io.NopCloser(resp.Body))
+			if err != nil {
+				log.Printf("Error parsing HTML for %s: %v", url, err)
+				return
+			}
+
+			if link != "https://www.centris.ca" {
+				fmt.Println(link)
+				property := getProperty(doc)
+				propertyExpenses := getPropertyExpenses(doc, property.ID)
+				propertyFeatures := getPropertyFeatures(doc, property.ID)
+				propertyPhotos := getPropertyPhotos(property.ID)
+
+				properties = append(properties, property)
+				propertiesExpenses = append(propertiesExpenses, propertyExpenses)
+				propertiesFeatures = append(propertiesFeatures, propertyFeatures)
+				propertiesPhotos = append(propertiesPhotos, propertyPhotos)
+			}
+		}(link)
+	}
+	wg.Wait()
+}
+
+func GetAllProperties() []string {
 	// Create a transport with connection pooling
 	transport := &http.Transport{
 		MaxIdleConns:        maxIdleConns,
@@ -42,7 +125,7 @@ func RunPropertyScraper() []string {
 		Timeout:   30 * time.Second, // Add timeout
 	}
 
-	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl)
+	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl + PropertyMapUrl)
 
 	pins := getAllPins(client, aspNetCoreSession, arrAffinitySameSite)
 	housesHTML := getAllHouses(client, pins, aspNetCoreSession, arrAffinitySameSite)
@@ -229,4 +312,253 @@ func GetAllHouseInPin(client *http.Client, aspNetCoreSession string, arrAffinity
 	}
 
 	return ""
+}
+
+func getPropertyCategory(title string) string {
+	return strings.Split(title, " ")[0]
+}
+
+func getPropertyId(doc *html.Node) int64 {
+	element := FindElementById(doc, "ListingDisplayId")
+	elementText := ExtractText(element)
+	propertyId, _ := strconv.ParseInt(elementText, 10, 64)
+	return propertyId
+}
+
+func getPropertyPrice(doc *html.Node) float32 {
+	propertyPriceString := FindElementAttribute(doc, "meta", "itemprop", "price", "content")
+	propertyPriceFloat64, _ := strconv.ParseFloat(propertyPriceString, 64)
+	return float32(propertyPriceFloat64)
+}
+
+func getPropertyCoordinate(doc *html.Node, itempropValue string) float32 {
+	propertyLatitudeFloat64, _ := strconv.ParseFloat(FindElementAttribute(doc, "meta", "itemprop", itempropValue, "content"), 64)
+	return float32(propertyLatitudeFloat64)
+}
+
+func getPropretyDescription(doc *html.Node) *string {
+	var propertyDescription *string
+	element := FindElementByAttribute(doc, "itemprop", "description")
+	if element == nil {
+		return nil
+	}
+	description := ExtractText(element)
+	if description != "" {
+		propertyDescription = &description // Take the address of the variable
+	} else {
+		propertyDescription = nil
+	}
+
+	return propertyDescription
+}
+
+func getPropertyRoomNumber(doc *html.Node, className string) *int32 {
+	var propertyRoomNumber *int32
+	elementNode := FindElementByClassNode(doc, "div", "col-lg-3 col-sm-6 "+className)
+	if elementNode == nil {
+		return nil
+	}
+
+	roomNumber := ExtractText(elementNode)
+	if roomNumber != "" {
+		regex := regexp.MustCompile(`\b([1-9][0-9]?|0)\b`)
+		matches := regex.FindAllString(roomNumber, -1)
+		var sum int32 = 0 // Initialize a sum variable
+
+		for _, match := range matches {
+			if className == "cac" {
+				parsedRoomNumber, err := strconv.ParseInt(matches[0], 10, 32)
+				if err == nil {
+					num := int32(parsedRoomNumber)
+					return &num
+				}
+			}
+
+			parsedBathroomNumber, err := strconv.ParseInt(match, 10, 32)
+			if err == nil {
+				sum += int32(parsedBathroomNumber) // Add to the sum
+			}
+		}
+		propertyRoomNumber = &sum // Assign the pointer to the final sum
+	}
+
+	return propertyRoomNumber
+}
+
+func getPropertyTitle(doc *html.Node) string {
+	element := FindElementByAttribute(doc, "data-id", "PageTitle")
+	elementText := ExtractText(element)
+	return elementText
+}
+
+func getPropertyAddress(doc *html.Node) string {
+	element := FindElementByAttribute(doc, "itemprop", "address")
+	elementText := ExtractText(element)
+	return elementText
+}
+
+func getPropertyCityName(doc *html.Node) string {
+	parentElement := FindElementById(doc, "divStatistique")
+	element := FindElementByTagName(parentElement, "h2")
+	elementChild := FindElementByTagName(element, "span")
+	elementChildText := ExtractText(elementChild)
+	return elementChildText
+}
+
+func getProperty(doc *html.Node) repository.Property {
+
+	currentTime := time.Now()
+
+	// propertyTransactionType := getPropertyTransactionType(pageTitle)
+
+	return repository.Property{
+		ID:             getPropertyId(doc),
+		Title:          getPropertyTitle(doc),
+		Category:       getPropertyCategory(getPropertyTitle(doc)),
+		Address:        getPropertyAddress(doc),
+		CityName:       getPropertyCityName(doc),
+		Price:          getPropertyPrice(doc),
+		Description:    getPropretyDescription(doc),
+		BedroomNumber:  getPropertyRoomNumber(doc, "cac"),
+		RoomNumber:     getPropertyRoomNumber(doc, "piece"),
+		BathroomNumber: getPropertyRoomNumber(doc, "sdb"),
+		Latitude:       getPropertyCoordinate(doc, "latitude"),
+		Longitude:      getPropertyCoordinate(doc, "longitude"),
+		CreatedAt:      &currentTime,
+		UpdatedAt:      &currentTime,
+	}
+}
+
+func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.PropertyExpense {
+	currentTime := time.Now()
+	containerElement := FindElementByClassNode(doc, "div", "row financial-details-tables")
+	monthlyTables := FindElementsByAttribute(containerElement, "class", "financial-details-table financial-details-table-monthly")
+	var propertyExpenses []repository.PropertyExpense
+
+	for _, element := range monthlyTables {
+		tableTitle := FindElementByClass(element, "th", "col pl-0 financial-details-table-title")
+		tableBody := FindElementByTagName(element, "tbody")
+		tableRows := FindElementsByTagName(tableBody, "tr")
+		var expenseType string
+		for _, row := range tableRows {
+			rowTitle := ExtractText(FindElementByTagName(row, "td"))
+			rowValue := strings.TrimSpace(strings.ReplaceAll(FindElementByClass(row, "td", "text-right"), "$", ""))
+			floatValue, err := strconv.ParseFloat(rowValue, 32)
+			if err != nil {
+				continue
+			}
+
+			if tableTitle == "Taxes" {
+				expenseType = tableTitle + " " + rowTitle
+			} else if tableTitle == "Dépenses" {
+				expenseType = rowTitle
+			}
+
+			float32Value := float32(floatValue)
+			annualValue := (float32Value * 12)
+
+			propertyExpense := repository.PropertyExpense{
+				ID:           uuid.New(),
+				PropertyID:   propertyId,
+				Type:         expenseType,
+				MonthlyPrice: float32Value,
+				AnnualPrice:  annualValue,
+				CreatedAt:    &currentTime,
+			}
+
+			propertyExpenses = append(propertyExpenses, propertyExpense)
+		}
+
+	}
+
+	return propertyExpenses
+}
+
+func getPropertyFeatures(doc *html.Node, propertyId int64) []repository.PropertyFeature {
+	elements := FindElementsByAttribute(doc, "class", "col-lg-3 col-sm-6 carac-container")
+	var propertyFeatures []repository.PropertyFeature
+
+	for _, element := range elements {
+		elementTitle := FindElementByClass(element, "div", "carac-title")
+		elementValue := FindElementByClass(element, "div", "carac-value")
+
+		if elementTitle != "" && elementValue != "" {
+			propertyFeature := repository.PropertyFeature{
+				ID:         uuid.New(),
+				PropertyID: propertyId,
+				Title:      elementTitle,
+				Value:      elementValue,
+			}
+			propertyFeatures = append(propertyFeatures, propertyFeature)
+		}
+	}
+
+	return propertyFeatures
+}
+
+func getPropertyPhotos(propertyId int64) []repository.PropertyPhoto {
+	currentTime := time.Now()
+	url := "https://www.centris.ca/Property/PhotoViewerDataListing"
+	var propertyPhotos []repository.PropertyPhoto
+
+	// Prepare request body
+	body := RequestBodyPhoto{
+		Lang:                   "fr",
+		CentrisNo:              propertyId,
+		Track:                  true,
+		AuthorizationMediaCode: "999",
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil
+	}
+
+	// Create request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	// Parse response
+	var photoResponse PhotoResponse
+	err = json.NewDecoder(resp.Body).Decode(&photoResponse)
+	if err != nil {
+		return nil
+	}
+
+	for _, photo := range photoResponse.PhotoList {
+
+		photoUrl := photo.UrlThumb
+		photoUrlQueryParameterIndex := strings.Index(photoUrl, "&t")
+		photoUrl = photoUrl[:photoUrlQueryParameterIndex] + "&t=pi&f=I"
+
+		propertyPhoto := repository.PropertyPhoto{
+			ID:          uuid.New(),
+			PropertyID:  propertyId,
+			Link:        photoUrl,
+			Description: &photo.Desc,
+			CreatedAt:   &currentTime,
+		}
+
+		propertyPhotos = append(propertyPhotos, propertyPhoto)
+	}
+
+	return propertyPhotos
 }
