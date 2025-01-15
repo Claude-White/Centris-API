@@ -36,3 +36,34 @@ func (q *Queries) CreateBrokerPhone(ctx context.Context, arg CreateBrokerPhonePa
 	err := row.Scan(&id)
 	return id, err
 }
+
+const getAllBrokerPhonesByBrokerId = `-- name: GetAllBrokerPhonesByBrokerId :many
+SELECT id, broker_id, type, number, created_at FROM broker_phone
+WHERE broker_phone.broker_id = $1
+`
+
+func (q *Queries) GetAllBrokerPhonesByBrokerId(ctx context.Context, brokerID int64) ([]BrokerPhone, error) {
+	rows, err := q.db.Query(ctx, getAllBrokerPhonesByBrokerId, brokerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BrokerPhone
+	for rows.Next() {
+		var i BrokerPhone
+		if err := rows.Scan(
+			&i.ID,
+			&i.BrokerID,
+			&i.Type,
+			&i.Number,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
