@@ -160,3 +160,71 @@ func FindElementsByAttribute(n *html.Node, attrName, attrValue string) []*html.N
 
 	return matches
 }
+
+func FindElementById(n *html.Node, id string) *html.Node {
+	if n == nil {
+		return nil
+	}
+
+	// Check if current node has the id attribute
+	if n.Type == html.ElementNode {
+		for _, attr := range n.Attr {
+			if attr.Key == "id" && attr.Val == id {
+				return n
+			}
+		}
+	}
+
+	// Recursively search through child nodes
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if result := FindElementById(c, id); result != nil {
+			return result
+		}
+	}
+
+	return nil
+}
+
+func FindElementByAttribute(n *html.Node, attrName, attrValue string) *html.Node {
+	if n == nil {
+		return nil
+	}
+
+	// Check if current node has the attribute with specified value
+	if n.Type == html.ElementNode {
+		for _, attr := range n.Attr {
+			if attr.Key == attrName && attr.Val == attrValue {
+				return n
+			}
+		}
+	}
+
+	// Recursively search through child nodes
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if result := FindElementByAttribute(c, attrName, attrValue); result != nil {
+			return result
+		}
+	}
+
+	return nil
+}
+
+func FindElementsByTagName(n *html.Node, tagName string) []*html.Node {
+	var elements []*html.Node
+
+	if n == nil {
+		return elements
+	}
+
+	// Check if current node matches the tag name
+	if n.Type == html.ElementNode && n.Data == tagName {
+		elements = append(elements, n)
+	}
+
+	// Recursively search through child nodes
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		elements = append(elements, FindElementsByTagName(c, tagName)...)
+	}
+
+	return elements
+}
