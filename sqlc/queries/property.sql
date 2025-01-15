@@ -58,3 +58,6 @@ WHERE (
 INSERT INTO property (id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id;
+
+-- name: DeleteAllProperties :exec
+DELETE FROM property;

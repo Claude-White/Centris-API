@@ -20,8 +20,7 @@ type CreatePropertyParams struct {
 	Title             string  `json:"title"`
 	Category          string  `json:"category"`
 	Address           string  `json:"address"`
-	CityName          *string `json:"city_name"`
-	NeighbourhoodName *string `json:"neighbourhood_name"`
+	CityName          string `json:"city_name"`
 	Price             float32 `json:"price"`
 	Description       *string `json:"description"`
 	BedroomNumber     *int32  `json:"bedroom_number"`
@@ -38,7 +37,6 @@ func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) 
 		arg.Category,
 		arg.Address,
 		arg.CityName,
-		arg.NeighbourhoodName,
 		arg.Price,
 		arg.Description,
 		arg.BedroomNumber,
@@ -50,6 +48,15 @@ func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) 
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const deleteAllProperties = `-- name: DeleteAllProperties :exec
+DELETE FROM property
+`
+
+func (q *Queries) DeleteAllProperties(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteAllProperties)
+	return err
 }
 
 const getAllAgencyProperties = `-- name: GetAllAgencyProperties :many

@@ -284,7 +284,7 @@ type Property struct {
 	Title             string     `json:"title"`
 	Category          string     `json:"category"`
 	Address           string     `json:"address"`
-	CityName          *string    `json:"city_name"`
+	CityName          string    `json:"city_name"`
 	NeighbourhoodName *string    `json:"neighbourhood_name"`
 	Price             float32    `json:"price"`
 	Description       *string    `json:"description"`
