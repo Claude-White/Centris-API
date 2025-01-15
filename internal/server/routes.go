@@ -87,17 +87,18 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 // ********************** PROPERTY ENDPOINT FUNCTIONS **********************
 
 // GetProperty godoc
-// @Summary      Get property by MLS number
-// @Description  Retrieves property details using the provided MLS number
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        mls   path      int     true  "MLS number"
-// @Success      200   {object}  repository.Property
-// @Failure      400   {string}  string  "Invalid MLS number"
-// @Failure      404   {string}  string  "Property not found"
-// @Failure      500   {string}  string  "Failed to get property"
-// @Router       /properties/{mls} [get]
+//
+//	@Summary		Get property by MLS number
+//	@Description	Retrieves property details using the provided MLS number
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			mls	path		int	true	"MLS number"
+//	@Success		200	{object}	repository.Property
+//	@Failure		400	{string}	string	"Invalid MLS number"
+//	@Failure		404	{string}	string	"Property not found"
+//	@Failure		500	{string}	string	"Failed to get property"
+//	@Router			/properties/{mls} [get]
 func (s *Server) GetProperty(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	mls, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("mls")), 10, 64)
@@ -125,16 +126,17 @@ func (s *Server) GetProperty(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAllProperties godoc
-// @Summary      Get all properties
-// @Description  Retrieves a list of properties with pagination
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Property
-// @Failure      400 {object} string "Invalid request body"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties [post]
+//
+//	@Summary		Get all properties
+//	@Description	Retrieves a list of properties with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		RequestBody	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Property
+//	@Failure		400		{object}	string	"Invalid request body"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties [post]
 func (s *Server) GetAllProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	body, err := io.ReadAll(r.Body)
@@ -172,17 +174,18 @@ func (s *Server) GetAllProperties(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPropertyByCoordinates godoc
-// @Summary      Get a property by coordinates
-// @Description  Retrieves a property based on latitude and longitude
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        request body Coordinates true "Coordinates parameters"
-// @Success      200 {object} repository.Property
-// @Failure      400 {object} string "Invalid request body"
-// @Failure      404 {object} string "Property not found"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/coordinates [post]
+//
+//	@Summary		Get a property by coordinates
+//	@Description	Retrieves a property based on latitude and longitude
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		Coordinates	true	"Coordinates parameters"
+//	@Success		200		{object}	repository.Property
+//	@Failure		400		{object}	string	"Invalid request body"
+//	@Failure		404		{object}	string	"Property not found"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties/coordinates [post]
 func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	body, err := io.ReadAll(r.Body)
@@ -223,18 +226,19 @@ func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request
 }
 
 // GetAllBrokerProperties godoc
-// @Summary      Get all properties by broker
-// @Description  Retrieves a list of properties for a specific broker with pagination
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        brokerId path int true "Broker ID"
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Property
-// @Failure      400 {object} string "Invalid broker ID or request body"
-// @Failure      404 {object} string "Broker properties not found"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/broker/{brokerId} [post]
+//
+//	@Summary		Get all properties by broker
+//	@Description	Retrieves a list of properties for a specific broker with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			brokerId	path		int			true	"Broker ID"
+//	@Param			request		body		RequestBody	true	"Pagination parameters"
+//	@Success		200			{array}		repository.Property
+//	@Failure		400			{object}	string	"Invalid broker ID or request body"
+//	@Failure		404			{object}	string	"Broker properties not found"
+//	@Failure		500			{object}	string	"Internal server error"
+//	@Router			/properties/broker/{brokerId} [post]
 func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	brokerId, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("brokerId")), 10, 64)
@@ -282,18 +286,19 @@ func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetAllAgencyProperties godoc
-// @Summary      Get all properties by agency
-// @Description  Retrieves a list of properties for a specific agency with pagination
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        agencyName path string true "Agency Name"
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Property
-// @Failure      400 {object} string "Invalid agency name or request body"
-// @Failure      404 {object} string "Agency properties not found"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/agency/{agencyName} [post]
+//
+//	@Summary		Get all properties by agency
+//	@Description	Retrieves a list of properties for a specific agency with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			agencyName	path		string		true	"Agency Name"
+//	@Param			request		body		RequestBody	true	"Pagination parameters"
+//	@Success		200			{array}		repository.Property
+//	@Failure		400			{object}	string	"Invalid agency name or request body"
+//	@Failure		404			{object}	string	"Agency properties not found"
+//	@Failure		500			{object}	string	"Internal server error"
+//	@Router			/properties/agency/{agencyName} [post]
 func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	agency := strings.ToLower(strings.TrimSpace(r.PathValue("agencyName")))
@@ -338,18 +343,19 @@ func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetAllCategoryProperties godoc
-// @Summary      Get all properties by category
-// @Description  Retrieves a list of properties for a specific category with pagination
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        categoryName path string true "Category Name"
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Property
-// @Failure      400 {object} string "Invalid category name or request body"
-// @Failure      404 {object} string "Category properties not found"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/category/{categoryName} [post]
+//
+//	@Summary		Get all properties by category
+//	@Description	Retrieves a list of properties for a specific category with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			categoryName	path		string		true	"Category Name"
+//	@Param			request			body		RequestBody	true	"Pagination parameters"
+//	@Success		200				{array}		repository.Property
+//	@Failure		400				{object}	string	"Invalid category name or request body"
+//	@Failure		404				{object}	string	"Category properties not found"
+//	@Failure		500				{object}	string	"Internal server error"
+//	@Router			/properties/category/{categoryName} [post]
 func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	category := strings.ToLower(strings.TrimSpace(r.PathValue("categoryName")))
@@ -394,18 +400,19 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 }
 
 // GetAllCityProperties godoc
-// @Summary      Get all properties by city
-// @Description  Retrieves a list of properties for a specific city with pagination
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        cityName path string true "City Name"
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Property
-// @Failure      400 {object} string "Invalid city name or request body"
-// @Failure      404 {object} string "City properties not found"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/city/{cityName} [post]
+//
+//	@Summary		Get all properties by city
+//	@Description	Retrieves a list of properties for a specific city with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			cityName	path		string		true	"City Name"
+//	@Param			request		body		RequestBody	true	"Pagination parameters"
+//	@Success		200			{array}		repository.Property
+//	@Failure		400			{object}	string	"Invalid city name or request body"
+//	@Failure		404			{object}	string	"City properties not found"
+//	@Failure		500			{object}	string	"Internal server error"
+//	@Router			/properties/city/{cityName} [post]
 func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	var city string
@@ -461,18 +468,19 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAllNeighbourhoodProperties godoc
-// @Summary      Get all properties by neighbourhood
-// @Description  Retrieves a list of properties for a specific neighbourhood with pagination
-// @Tags         Properties
-// @Accept       json
-// @Produce      json
-// @Param        neighbourhoodName path string true "Neighbourhood Name"
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Property
-// @Failure      400 {object} string "Invalid neighbourhood name or request body"
-// @Failure      404 {object} string "Neighbourhood properties not found"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/neighbourhood/{neighbourhoodName} [post]
+//
+//	@Summary		Get all properties by neighbourhood
+//	@Description	Retrieves a list of properties for a specific neighbourhood with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			neighbourhoodName	path		string		true	"Neighbourhood Name"
+//	@Param			request				body		RequestBody	true	"Pagination parameters"
+//	@Success		200					{array}		repository.Property
+//	@Failure		400					{object}	string	"Invalid neighbourhood name or request body"
+//	@Failure		404					{object}	string	"Neighbourhood properties not found"
+//	@Failure		500					{object}	string	"Internal server error"
+//	@Router			/properties/neighbourhood/{neighbourhoodName} [post]
 func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	var neighbourhood *string
@@ -573,16 +581,17 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 }
 
 // CreateProperty godoc
-// @Summary      Create a new property
-// @Description  Creates a new property given a json request body
-// @Tags         dev
-// @Accept       json
-// @Produce      json
-// @Param        params body repository.CreatePropertyParams true "Property request body"
-// @Success      200 {integer} string "New property id"
-// @Failure      400 {object} string "Invalid request body"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /properties/create [post]
+//
+//	@Summary		Create a new property
+//	@Description	Creates a new property given a json request body
+//	@Tags			dev
+//	@Accept			json
+//	@Produce		json
+//	@Param			params	body		repository.CreatePropertyParams	true	"Property request body"
+//	@Success		200		{integer}	string							"New property id"
+//	@Failure		400		{object}	string							"Invalid request body"
+//	@Failure		500		{object}	string							"Internal server error"
+//	@Router			/properties/create [post]
 func (s *Server) CreateProperty(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
@@ -622,16 +631,17 @@ func (s *Server) CreateProperty(w http.ResponseWriter, r *http.Request) {
 // ********************** BROKER ENDPOINT FUNCTIONS **********************
 
 // GetAllBrokers godoc
-// @Summary      Get all brokers
-// @Description  Retrieves a list of brokers with pagination
-// @Tags         Brokers
-// @Accept       json
-// @Produce      json
-// @Param        request body RequestBody true "Pagination parameters"
-// @Success      200 {array} repository.Broker
-// @Failure      400 {object} string "Invalid request body"
-// @Failure      500 {object} string "Internal server error"
-// @Router       /brokers [post]
+//
+//	@Summary		Get all brokers
+//	@Description	Retrieves a list of brokers with pagination
+//	@Tags			Brokers
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		RequestBody	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Broker
+//	@Failure		400		{object}	string	"Invalid request body"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/brokers [post]
 func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	body, err := io.ReadAll(r.Body)
@@ -690,17 +700,18 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetBroker godoc
-// @Summary      Get broker by broker number
-// @Description  Retrieves broker details using the provided broker number
-// @Tags         Brokers
-// @Accept       json
-// @Produce      json
-// @Param        brokerId   path      int     true  "Broker number"
-// @Success      200   {object}  repository.Broker
-// @Failure      400   {string}  string  "Invalid broker number"
-// @Failure      404   {string}  string  "Broker not found"
-// @Failure      500   {string}  string  "Failed to get broker"
-// @Router       /brokers/{brokerId} [get]
+//
+//	@Summary		Get broker by broker number
+//	@Description	Retrieves broker details using the provided broker number
+//	@Tags			Brokers
+//	@Accept			json
+//	@Produce		json
+//	@Param			brokerId	path		int	true	"Broker number"
+//	@Success		200			{object}	repository.Broker
+//	@Failure		400			{string}	string	"Invalid broker number"
+//	@Failure		404			{string}	string	"Broker not found"
+//	@Failure		500			{string}	string	"Failed to get broker"
+//	@Router			/brokers/{brokerId} [get]
 func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	brokerId, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("brokerId")), 10, 32)
