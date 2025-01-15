@@ -728,25 +728,3 @@ func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-// func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
-// 	domain := "www.centris.ca"
-// 	path := "/fr/courtiers-immobiliers"
-// 	numberOfBrokers := getTotalNumberOfBrokers(domain, path)
-// 	startPositions := make([]int, numberOfBrokers)
-// 	for i := 0; i < numberOfBrokers; i++ {
-// 		startPositions[i] = i
-// 	}
-// 	brokers, err := GetBrokersConcurrently(startPositions, 500)
-// 	if err != nil {
-// 		log.Fatalf("Error getting broker info: %v", err)
-// 	}
-// 	resp, err := json.Marshal(brokers)
-// 	if err != nil {
-// 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	if _, err := w.Write(resp); err != nil {
-// 		log.Printf("Failed to write response: %v", err)
-// 	}
-// }
