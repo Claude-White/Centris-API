@@ -43,7 +43,7 @@ func RunBrokerScraper() {
 	defer conn.Close(context.Background())
 
 	dbServer := CreateServer(conn)
-	dbServer.uploadToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
+	dbServer.uploadBrokersToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
 }
 
 func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
@@ -433,7 +433,7 @@ func flattenArray[T any](nested [][]T) []T {
 	return flat
 }
 
-func (s *Server) uploadToDB(brokers []repository.Broker, brokersPhoneNumbers [][]repository.BrokerPhone, brokersExternalLinks [][]repository.BrokerExternalLink) {
+func (s *Server) uploadBrokersToDB(brokers []repository.Broker, brokersPhoneNumbers [][]repository.BrokerPhone, brokersExternalLinks [][]repository.BrokerExternalLink) {
 	ctx := context.Background()
 
 	s.queries.DeleteAllBrokers(ctx)

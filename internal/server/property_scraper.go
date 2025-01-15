@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/net/html"
 	"golang.org/x/time/rate"
 )
@@ -30,6 +31,18 @@ const (
 )
 
 func RunPropertyScraper() {
+	properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties := getProperties()
+	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if dbErr != nil {
+		log.Fatalf("Failed to connect to the database: %v", dbErr)
+	}
+	defer conn.Close(context.Background())
+
+	dbServer := CreateServer(conn)
+	dbServer.uploadPropertiesToDB(properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties)
+}
+
+func getProperties() ([]repository.Property, [][]repository.PropertyExpense, [][]repository.PropertyFeature, [][]repository.PropertyPhoto, [][]repository.BrokerProperty) {
 	transport := &http.Transport{
 		MaxIdleConns:        maxIdleConns,
 		MaxIdleConnsPerHost: maxIdleConns,
@@ -44,20 +57,13 @@ func RunPropertyScraper() {
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 50)
 
-	// Open and read JSON file
-	file, err := os.Open("house-links.json")
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return
-	}
-	defer file.Close()
-
 	links := GetAllProperties()
 
 	var properties []repository.Property
 	var propertiesExpenses [][]repository.PropertyExpense
 	var propertiesFeatures [][]repository.PropertyFeature
 	var propertiesPhotos [][]repository.PropertyPhoto
+	var brokersProperties [][]repository.BrokerProperty
 
 	for _, link := range links {
 		wg.Add(1)
@@ -101,15 +107,20 @@ func RunPropertyScraper() {
 				propertyExpenses := getPropertyExpenses(doc, property.ID)
 				propertyFeatures := getPropertyFeatures(doc, property.ID)
 				propertyPhotos := getPropertyPhotos(property.ID)
+				brokerProperties := getPropertyBroker(doc, property.ID)
 
 				properties = append(properties, property)
 				propertiesExpenses = append(propertiesExpenses, propertyExpenses)
 				propertiesFeatures = append(propertiesFeatures, propertyFeatures)
 				propertiesPhotos = append(propertiesPhotos, propertyPhotos)
+				brokersProperties = append(brokersProperties, brokerProperties)
 			}
+
 		}(link)
 	}
 	wg.Wait()
+
+	return properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties
 }
 
 func GetAllProperties() []string {
@@ -561,4 +572,100 @@ func getPropertyPhotos(propertyId int64) []repository.PropertyPhoto {
 	}
 
 	return propertyPhotos
+}
+
+func getPropertyBroker(doc *html.Node, propertyId int64) []repository.BrokerProperty {
+	currentTime := time.Now()
+	elements := FindElementsByAttribute(doc, "class", "broker-info legacy-reset  ")
+	brokerProperties := []repository.BrokerProperty{}
+
+	for _, element := range elements {
+		brokerIdString := FindElementAttribute(element, "div", "class", "broker-info legacy-reset  ", "data-broker-id")
+		brokerId, err := strconv.ParseInt(brokerIdString, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		brokerProperty := repository.BrokerProperty{
+			ID:         uuid.New(),
+			BrokerID:   brokerId,
+			PropertyID: propertyId,
+			CreatedAt:  &currentTime,
+		}
+
+		brokerProperties = append(brokerProperties, brokerProperty)
+	}
+
+	return brokerProperties
+}
+
+func (s *Server) uploadPropertiesToDB(properties []repository.Property, propertiesExpenses [][]repository.PropertyExpense, propertiesFeatures [][]repository.PropertyFeature, propertiesPhotos [][]repository.PropertyPhoto, brokersProperties [][]repository.BrokerProperty) {
+	ctx := context.Background()
+
+	s.queries.DeleteAllProperties(ctx)
+	SendNotification("Process Complete", "All brokers deleted.")
+
+	for _, property := range properties {
+		brokerParams := repository.CreatePropertyParams{
+			ID:             property.ID,
+			Title:          property.Title,
+			Category:       property.Category,
+			Address:        property.Address,
+			CityName:       property.CityName,
+			Price:          property.Price,
+			Description:    property.Description,
+			BedroomNumber:  property.BedroomNumber,
+			RoomNumber:     property.RoomNumber,
+			BathroomNumber: property.BathroomNumber,
+			Latitude:       property.Latitude,
+			Longitude:      property.Longitude,
+			CreatedAt:      property.CreatedAt,
+			// Latitude          float32    `json:"latitude"`
+			// Longitude         float32    `json:"longitude"`
+			// CreatedAt         *time.Time `json:"created_at"`
+			// UpdatedAt         *time.Time `json:"updated_at"`
+		}
+
+		id, err := s.queries.CreateBroker(ctx, brokerParams)
+		if err != nil {
+			log.Printf("Failed to insert broker id: %d", brokerParams.ID)
+			log.Println("Error: " + err.Error())
+		}
+		fmt.Printf("Successfully inserted broker: %d\n", id)
+	}
+
+	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
+	for _, brokerPhoneNumber := range flatBrokersPhoneNumbers {
+		brokerPhoneNumberParams := repository.CreateBrokerPhoneParams{
+			BrokerID:  brokerPhoneNumber.BrokerID,
+			Type:      brokerPhoneNumber.Type,
+			Number:    brokerPhoneNumber.Number,
+			CreatedAt: brokerPhoneNumber.CreatedAt,
+		}
+
+		id, err := s.queries.CreateBrokerPhone(ctx, brokerPhoneNumberParams)
+		if err != nil {
+			log.Printf("Failed to insert broker phone number: %s. With Id: %d", brokerPhoneNumberParams.Number, brokerPhoneNumberParams.BrokerID)
+			log.Println("Error: " + err.Error())
+		}
+		fmt.Printf("Successfully inserted broker phone: %d\n", id)
+	}
+
+	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
+	for _, brokerExternalLink := range flatBrokersExternalLinks {
+		brokerExternalLinkParams := repository.CreateBrokerExternalLinkParams{
+			BrokerID:  brokerExternalLink.BrokerID,
+			Type:      brokerExternalLink.Type,
+			Link:      brokerExternalLink.Link,
+			CreatedAt: brokerExternalLink.CreatedAt,
+		}
+
+		id, err := s.queries.CreateBrokerExternalLink(ctx, brokerExternalLinkParams)
+		if err != nil {
+			log.Printf("Failed to insert broker link: %s. With Id: %d", brokerExternalLinkParams.Link, brokerExternalLinkParams.BrokerID)
+			log.Println("Error: " + err.Error())
+		}
+
+		fmt.Printf("Successfully inserted broker external link: %d\n", id)
+	}
 }
