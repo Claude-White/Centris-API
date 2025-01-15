@@ -68,6 +68,7 @@ func (q *Queries) DeleteAllBrokers(ctx context.Context) error {
 
 const getAllBrokers = `-- name: GetAllBrokers :many
 SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at FROM broker
+ORDER BY broker.first_name, broker.last_name
 LIMIT $2::int OFFSET $1::int
 `
 
@@ -114,12 +115,12 @@ func (q *Queries) GetAllBrokers(ctx context.Context, arg GetAllBrokersParams) ([
 
 const getBroker = `-- name: GetBroker :one
 SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at FROM broker 
-WHERE broker.id = $1
+WHERE broker.id = $1::int
 LIMIT 1
 `
 
-func (q *Queries) GetBroker(ctx context.Context, id int64) (Broker, error) {
-	row := q.db.QueryRow(ctx, getBroker, id)
+func (q *Queries) GetBroker(ctx context.Context, borkerID int32) (Broker, error) {
+	row := q.db.QueryRow(ctx, getBroker, borkerID)
 	var i Broker
 	err := row.Scan(
 		&i.ID,

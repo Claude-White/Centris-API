@@ -668,9 +668,11 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
-// 	RunBrokerScraper()
-// }
+type CompleteBroker struct {
+	Broker        repository.Broker
+	Broker_Phones []repository.BrokerPhone
+	Broker_Links  []repository.BrokerExternalLink
+}
 
 // GetBroker godoc
 // @Summary      Get broker by broker number
@@ -692,13 +694,30 @@ func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var completeBroker CompleteBroker
+
 	broker, err := s.queries.GetBroker(ctx, brokerId)
 	if err != nil {
 		http.Error(w, "Broker not found", http.StatusNotFound)
 		return
 	}
+	completeBroker.Broker = broker
 
-	resp, err := json.Marshal(broker)
+	broker_phones, err := s.queries.GetAllBrokerPhonesByBrokerId(ctx, brokerId)
+	if err != nil {
+		http.Error(w, "Broker Phones not found", http.StatusNotFound)
+		return
+	}
+	completeBroker.Broker_Phones = broker_phones
+
+	broker_links, err := s.queries.GetAllBrokerLinksByBrokerId(ctx, brokerId)
+	if err != nil {
+		http.Error(w, "Broker Phones not found", http.StatusNotFound)
+		return
+	}
+	completeBroker.Broker_Links = broker_links
+
+	resp, err := json.Marshal(completeBroker)
 	if err != nil {
 		http.Error(w, "Failed to marshal broker response", http.StatusInternalServerError)
 		return
@@ -709,25 +728,3 @@ func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-// func (s *Server) GetBrokers(w http.ResponseWriter, r *http.Request) {
-// 	domain := "www.centris.ca"
-// 	path := "/fr/courtiers-immobiliers"
-// 	numberOfBrokers := getTotalNumberOfBrokers(domain, path)
-// 	startPositions := make([]int, numberOfBrokers)
-// 	for i := 0; i < numberOfBrokers; i++ {
-// 		startPositions[i] = i
-// 	}
-// 	brokers, err := GetBrokersConcurrently(startPositions, 500)
-// 	if err != nil {
-// 		log.Fatalf("Error getting broker info: %v", err)
-// 	}
-// 	resp, err := json.Marshal(brokers)
-// 	if err != nil {
-// 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	if _, err := w.Write(resp); err != nil {
-// 		log.Printf("Failed to write response: %v", err)
-// 	}
-// }

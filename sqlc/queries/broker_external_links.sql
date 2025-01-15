@@ -1,3 +1,7 @@
+-- name: GetAllBrokerLinksByBrokerId :many
+SELECT * FROM broker_external_links
+WHERE broker_external_links.broker_id = $1;
+
 -- name: CreateBrokerExternalLink :one
 INSERT INTO broker_external_links (id, broker_id, type, link, created_at)
 values (uuid_generate_v4(), $1, $2, $3, $4)

@@ -1,10 +1,11 @@
 -- name: GetAllBrokers :many
 SELECT * FROM broker
+ORDER BY broker.first_name, broker.last_name
 LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetBroker :one
 SELECT * FROM broker 
-WHERE broker.id = $1
+WHERE broker.id = @borker_id::int
 LIMIT 1;
 
 -- name: CreateBroker :one
