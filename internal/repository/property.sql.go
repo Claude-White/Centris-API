@@ -20,7 +20,7 @@ type CreatePropertyParams struct {
 	Title             string  `json:"title"`
 	Category          string  `json:"category"`
 	Address           string  `json:"address"`
-	CityName          *string `json:"city_name"`
+	CityName          string  `json:"city_name"`
 	NeighbourhoodName *string `json:"neighbourhood_name"`
 	Price             float32 `json:"price"`
 	Description       *string `json:"description"`
@@ -209,9 +209,9 @@ LIMIT $3::int OFFSET $2::int
 `
 
 type GetAllCityPropertiesParams struct {
-	CityName      *string `json:"city_name"`
-	StartPosition int32   `json:"start_position"`
-	NumberOfItems int32   `json:"number_of_items"`
+	CityName      string `json:"city_name"`
+	StartPosition int32  `json:"start_position"`
+	NumberOfItems int32  `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityPropertiesParams) ([]Property, error) {
