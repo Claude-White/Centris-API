@@ -40,8 +40,8 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	done <- true
 }
 
-// @title Swagger Centris API
-// @version 0.1
+//	@title		Swagger Centris API
+//	@version	0.1
 func main() {
 	var command string
 	if len(os.Args) > 1 {
