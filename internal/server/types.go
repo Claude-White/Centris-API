@@ -1,5 +1,7 @@
 package server
 
+import "centris-api/internal/repository"
+
 // Coordinate represents latitude and longitude
 type Coordinate struct {
 	Lat float64 `json:"Lat"`
@@ -138,4 +140,10 @@ type PhotoResponse struct {
 	Track                            bool                    `json:"Track"`
 	CentrisNo                        string                  `json:"CentrisNo"`
 	VirtualTourUrl                   *string                 `json:"VirtualTourUrl"`
+}
+
+type CompleteBroker struct {
+	Broker        repository.Broker
+	Broker_Phones []repository.BrokerPhone
+	Broker_Links  []repository.BrokerExternalLink
 }

@@ -408,14 +408,15 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 // @Router       /properties/city/{cityName} [post]
 func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	var city *string
+	var city string
 	cityName := strings.TrimSpace(r.PathValue("cityName"))
 	if cityName == "" {
 		http.Error(w, "City name is required", http.StatusBadRequest)
 		return
 	} else {
 		lowerCaseCityName := strings.ToLower(cityName)
-		city = &lowerCaseCityName
+		city = lowerCaseCityName
+		// was &lowerCaseCityName
 	}
 
 	body, err := io.ReadAll(r.Body)
@@ -647,6 +648,16 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.NumberOfItems < 1 {
+		http.Error(w, "Number of items must be above 0", http.StatusBadRequest)
+		return
+	}
+
+	if req.NumberOfItems > 20 {
+		http.Error(w, "Number of items must be below 21", http.StatusBadRequest)
+		return
+	}
+
 	brokers, err := s.queries.GetAllBrokers(ctx, repository.GetAllBrokersParams{
 		NumberOfItems: req.NumberOfItems,
 		StartPosition: req.StartPosition,
@@ -656,7 +667,17 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := json.Marshal(brokers)
+	var completeBrokers []CompleteBroker
+	for _, broker := range brokers {
+		completeBroker, err := GetCompleteBroker(s, ctx, broker)
+		if err != nil {
+			http.Error(w, "Complete broker not found", http.StatusNotFound)
+			return
+		}
+		completeBrokers = append(completeBrokers, completeBroker)
+	}
+
+	resp, err := json.Marshal(completeBrokers)
 	if err != nil {
 		http.Error(w, "Failed to marshal brokers response", http.StatusInternalServerError)
 		return
@@ -666,12 +687,6 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return
 	}
-}
-
-type CompleteBroker struct {
-	Broker        repository.Broker
-	Broker_Phones []repository.BrokerPhone
-	Broker_Links  []repository.BrokerExternalLink
 }
 
 // GetBroker godoc
@@ -688,7 +703,7 @@ type CompleteBroker struct {
 // @Router       /brokers/{brokerId} [get]
 func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	brokerId, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("brokerId")), 10, 64)
+	brokerId, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("brokerId")), 10, 32)
 	if err != nil {
 		http.Error(w, "Invalid MLS number", http.StatusBadRequest)
 		return
@@ -696,26 +711,17 @@ func (s *Server) GetBroker(w http.ResponseWriter, r *http.Request) {
 
 	var completeBroker CompleteBroker
 
-	broker, err := s.queries.GetBroker(ctx, brokerId)
+	broker, err := s.queries.GetBroker(ctx, int32(brokerId))
 	if err != nil {
 		http.Error(w, "Broker not found", http.StatusNotFound)
 		return
 	}
-	completeBroker.Broker = broker
 
-	broker_phones, err := s.queries.GetAllBrokerPhonesByBrokerId(ctx, brokerId)
+	completeBroker, err = GetCompleteBroker(s, ctx, broker)
 	if err != nil {
-		http.Error(w, "Broker Phones not found", http.StatusNotFound)
+		http.Error(w, "Complete broker not found", http.StatusNotFound)
 		return
 	}
-	completeBroker.Broker_Phones = broker_phones
-
-	broker_links, err := s.queries.GetAllBrokerLinksByBrokerId(ctx, brokerId)
-	if err != nil {
-		http.Error(w, "Broker Phones not found", http.StatusNotFound)
-		return
-	}
-	completeBroker.Broker_Links = broker_links
 
 	resp, err := json.Marshal(completeBroker)
 	if err != nil {
