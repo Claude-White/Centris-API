@@ -283,9 +283,7 @@ type Property struct {
 	ID                int64      `json:"mls"`
 	Title             string     `json:"title"`
 	Category          string     `json:"category"`
-	CivicNumber       *string    `json:"civic_number"`
-	StreetName        *string    `json:"street_name"`
-	ApartmentNumber   *string    `json:"apartment_number"`
+	Address           string     `json:"address"`
 	CityName          *string    `json:"city_name"`
 	NeighbourhoodName *string    `json:"neighbourhood_name"`
 	Price             float32    `json:"price"`
