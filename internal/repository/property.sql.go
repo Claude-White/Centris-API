@@ -38,6 +38,7 @@ func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) 
 		arg.Category,
 		arg.Address,
 		arg.CityName,
+		arg.NeighbourhoodName,
 		arg.Price,
 		arg.Description,
 		arg.BedroomNumber,
