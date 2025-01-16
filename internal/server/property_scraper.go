@@ -32,7 +32,7 @@ const (
 
 func RunPropertyScraper() {
 	properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties := getProperties()
-	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("SUPABASE_DB"))
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
 	}
@@ -606,7 +606,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	SendNotification("Process Complete", "All brokers deleted.")
 
 	for _, property := range properties {
-		brokerParams := repository.CreatePropertyParams{
+		propertyParams := repository.CreatePropertyParams{
 			ID:             property.ID,
 			Title:          property.Title,
 			Category:       property.Category,
@@ -619,53 +619,84 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 			BathroomNumber: property.BathroomNumber,
 			Latitude:       property.Latitude,
 			Longitude:      property.Longitude,
-			CreatedAt:      property.CreatedAt,
-			// Latitude          float32    `json:"latitude"`
-			// Longitude         float32    `json:"longitude"`
-			// CreatedAt         *time.Time `json:"created_at"`
-			// UpdatedAt         *time.Time `json:"updated_at"`
 		}
 
-		id, err := s.queries.CreateBroker(ctx, brokerParams)
+		id, err := s.queries.CreateProperty(ctx, propertyParams)
 		if err != nil {
-			log.Printf("Failed to insert broker id: %d", brokerParams.ID)
+			log.Printf("Failed to insert property: %d", propertyParams.ID)
 			log.Println("Error: " + err.Error())
 		}
-		fmt.Printf("Successfully inserted broker: %d\n", id)
+		fmt.Printf("Successfully inserted property: %d\n", id)
 	}
 
-	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
-	for _, brokerPhoneNumber := range flatBrokersPhoneNumbers {
-		brokerPhoneNumberParams := repository.CreateBrokerPhoneParams{
-			BrokerID:  brokerPhoneNumber.BrokerID,
-			Type:      brokerPhoneNumber.Type,
-			Number:    brokerPhoneNumber.Number,
-			CreatedAt: brokerPhoneNumber.CreatedAt,
+	flatPropertiesExpenses := flattenArray(propertiesExpenses)
+	for _, propertyExpense := range flatPropertiesExpenses {
+		propertyExpenseParams := repository.CreatePropertyExpensesParams{
+			PropertyID:   propertyExpense.PropertyID,
+			Type:         propertyExpense.Type,
+			AnnualPrice:  propertyExpense.AnnualPrice,
+			MonthlyPrice: propertyExpense.MonthlyPrice,
+			CreatedAt:    propertyExpense.CreatedAt,
 		}
 
-		id, err := s.queries.CreateBrokerPhone(ctx, brokerPhoneNumberParams)
+		id, err := s.queries.CreatePropertyExpenses(ctx, propertyExpenseParams)
 		if err != nil {
-			log.Printf("Failed to insert broker phone number: %s. With Id: %d", brokerPhoneNumberParams.Number, brokerPhoneNumberParams.BrokerID)
+			log.Printf("Failed to insert property expense: %s.", propertyExpense.ID)
 			log.Println("Error: " + err.Error())
 		}
-		fmt.Printf("Successfully inserted broker phone: %d\n", id)
+		fmt.Printf("Successfully inserted property expense: %d\n", id)
 	}
 
-	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
-	for _, brokerExternalLink := range flatBrokersExternalLinks {
-		brokerExternalLinkParams := repository.CreateBrokerExternalLinkParams{
-			BrokerID:  brokerExternalLink.BrokerID,
-			Type:      brokerExternalLink.Type,
-			Link:      brokerExternalLink.Link,
-			CreatedAt: brokerExternalLink.CreatedAt,
+	flatPropertiesFeatures := flattenArray(propertiesFeatures)
+	for _, propertyFeature := range flatPropertiesFeatures {
+		propertyFeatureParams := repository.CreatePropertyFeatureParams{
+			PropertyID: propertyFeature.PropertyID,
+			Title:      propertyFeature.Title,
+			Value:      propertyFeature.Value,
+			CreatedAt:  propertyFeature.CreatedAt,
 		}
 
-		id, err := s.queries.CreateBrokerExternalLink(ctx, brokerExternalLinkParams)
+		id, err := s.queries.CreatePropertyFeature(ctx, propertyFeatureParams)
 		if err != nil {
-			log.Printf("Failed to insert broker link: %s. With Id: %d", brokerExternalLinkParams.Link, brokerExternalLinkParams.BrokerID)
+			log.Printf("Failed to insert property feature: %s.", propertyFeature.ID)
 			log.Println("Error: " + err.Error())
 		}
 
-		fmt.Printf("Successfully inserted broker external link: %d\n", id)
+		fmt.Printf("Successfully inserted property feature: %d\n", id)
+	}
+
+	flatPropertiesPhotos := flattenArray(propertiesPhotos)
+	for _, propertyPhoto := range flatPropertiesPhotos {
+		propertyPhotoParams := repository.CreatePropertyPhotoParams{
+			PropertyID:  propertyPhoto.PropertyID,
+			Link:        propertyPhoto.Link,
+			Description: propertyPhoto.Description,
+			CreatedAt:   propertyPhoto.CreatedAt,
+		}
+
+		id, err := s.queries.CreatePropertyPhoto(ctx, propertyPhotoParams)
+		if err != nil {
+			log.Printf("Failed to insert property photo: %s.", propertyPhoto.ID)
+			log.Println("Error: " + err.Error())
+		}
+
+		fmt.Printf("Successfully inserted property feature: %d\n", id)
+	}
+
+	flatBrokerProperties := flattenArray(brokersProperties)
+	for _, brokerProperty := range flatBrokerProperties {
+		brokerPropertyParams := repository.CreateBrokerPropertyParams{
+			BrokerID:   brokerProperty.BrokerID,
+			PropertyID: brokerProperty.PropertyID,
+			CreatedAt:  brokerProperty.CreatedAt,
+		}
+
+		id, err := s.queries.CreateBrokerProperty(ctx, brokerPropertyParams)
+		if err != nil {
+			log.Printf("Failed to insert broker property: %s.", brokerProperty.ID)
+			log.Println("Error: " + err.Error())
+		}
+
+		fmt.Printf("Successfully inserted broker property: %d\n", id)
 	}
 }
