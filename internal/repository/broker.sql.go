@@ -67,7 +67,8 @@ func (q *Queries) DeleteAllBrokers(ctx context.Context) error {
 }
 
 const getAllBrokers = `-- name: GetAllBrokers :many
-SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at FROM broker
+SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at 
+FROM broker
 ORDER BY broker.first_name, broker.last_name
 LIMIT $2::int OFFSET $1::int
 `
