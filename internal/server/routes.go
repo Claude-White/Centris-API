@@ -17,6 +17,7 @@ type RequestBody struct {
 	StartPosition int32 `json:"start_position"`
 	NumberOfItems int32 `json:"number_of_items"`
 }
+
 type Coordinates struct {
 	Longitude float32 `json:"longitude"`
 	Latitude  float32 `json:"latitude"`
@@ -42,7 +43,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /properties/city/{cityName}", s.GetAllCityProperties)
 	mux.HandleFunc("POST /properties/neighbourhood/{neighbourhoodName}", s.GetAllNeighbourhoodProperties)
 	mux.HandleFunc("POST /properties/geo-filter/{radius}", s.GetAllRadiusProperties)
-	mux.HandleFunc("POST /properties/create", s.CreateProperty)
 
 	// Broker enpoints
 	mux.HandleFunc("GET /brokers/{brokerId}", s.GetBroker)
@@ -577,54 +577,6 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 	if _, err := w.Write(resp); err != nil {
 		log.Printf("Failed to write response: %v", err)
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
-}
-
-// CreateProperty godoc
-//
-//	@Summary		Create a new property
-//	@Description	Creates a new property given a json request body
-//	@Tags			dev
-//	@Accept			json
-//	@Produce		json
-//	@Param			params	body		repository.CreatePropertyParams	true	"Property request body"
-//	@Success		200		{integer}	string							"New property id"
-//	@Failure		400		{object}	string							"Invalid request body"
-//	@Failure		500		{object}	string							"Internal server error"
-//	@Router			/properties/create [post]
-func (s *Server) CreateProperty(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	var req repository.CreatePropertyParams
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return
-	}
-
-	propertyId, err := s.queries.CreateProperty(ctx, req)
-	if err != nil {
-		http.Error(w, "Failed to create property", http.StatusInternalServerError)
-		return
-	}
-
-	resp, err := json.Marshal(propertyId)
-	if err != nil {
-		http.Error(w, "Failed to marshal create property response", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(resp); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-
 	}
 }
 
