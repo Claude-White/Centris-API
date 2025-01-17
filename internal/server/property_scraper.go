@@ -27,7 +27,7 @@ var limiter = rate.NewLimiter(rate.Every(5*time.Millisecond), 20) // 200 request
 const (
 	maxConcurrentRequests = 100 // Increased from 5
 	maxIdleConns          = 400 // Increased from 100
-	requestTimeout        = 30 * time.Second
+	requestTimeout        = 60 * time.Second
 )
 
 func RunPropertyScraper() {
