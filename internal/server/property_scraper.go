@@ -603,7 +603,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	ctx := context.Background()
 
 	s.queries.DeleteAllProperties(ctx)
-	SendNotification("Process Complete", "All brokers deleted.")
+	SendNotification("Process Complete", "All properties deleted.")
 
 	for _, property := range properties {
 		propertyParams := repository.CreatePropertyParams{
