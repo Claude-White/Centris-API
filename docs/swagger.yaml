@@ -32,42 +32,9 @@ definitions:
       updated_at:
         type: string
     type: object
-  repository.CreatePropertyParams:
-    properties:
-      apartment_number:
-        type: string
-      bathroom_number:
-        type: integer
-      bedroom_number:
-        type: integer
-      category:
-        type: string
-      city_name:
-        type: string
-      civic_number:
-        type: string
-      description:
-        type: string
-      latitude:
-        type: number
-      longitude:
-        type: number
-      mls:
-        type: integer
-      neighbourhood_name:
-        type: string
-      price:
-        type: number
-      room_number:
-        type: integer
-      street_name:
-        type: string
-      title:
-        type: string
-    type: object
   repository.Property:
     properties:
-      apartment_number:
+      address:
         type: string
       bathroom_number:
         type: integer
@@ -76,8 +43,6 @@ definitions:
       category:
         type: string
       city_name:
-        type: string
-      civic_number:
         type: string
       created_at:
         type: string
@@ -96,8 +61,6 @@ definitions:
         type: number
       room_number:
         type: integer
-      street_name:
-        type: string
       title:
         type: string
       updated_at:
@@ -450,36 +413,6 @@ paths:
       summary: Get a property by coordinates
       tags:
       - Properties
-  /properties/create:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new property given a json request body
-      parameters:
-      - description: Property request body
-        in: body
-        name: params
-        required: true
-        schema:
-          $ref: '#/definitions/repository.CreatePropertyParams'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: New property id
-          schema:
-            type: integer
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Create a new property
-      tags:
-      - dev
   /properties/neighbourhood/{neighbourhoodName}:
     post:
       consumes:
