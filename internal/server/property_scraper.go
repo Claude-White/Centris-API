@@ -27,7 +27,7 @@ var limiter = rate.NewLimiter(rate.Every(5*time.Millisecond), 20) // 200 request
 const (
 	maxConcurrentRequests = 100 // Increased from 5
 	maxIdleConns          = 400 // Increased from 100
-	requestTimeout        = 30 * time.Second
+	requestTimeout        = 120 * time.Second
 )
 
 func RunPropertyScraper() {
@@ -625,8 +625,9 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 		if err != nil {
 			log.Printf("Failed to insert property: %d", propertyParams.ID)
 			log.Println("Error: " + err.Error())
+		} else {
+			fmt.Printf("Successfully inserted property: %d\n", id)
 		}
-		fmt.Printf("Successfully inserted property: %d\n", id)
 	}
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
@@ -660,9 +661,9 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 		if err != nil {
 			log.Printf("Failed to insert property feature: %s.", propertyFeature.ID)
 			log.Println("Error: " + err.Error())
+		} else {
+			fmt.Printf("Successfully inserted property feature: %d\n", id)
 		}
-
-		fmt.Printf("Successfully inserted property feature: %d\n", id)
 	}
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
@@ -678,9 +679,9 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 		if err != nil {
 			log.Printf("Failed to insert property photo: %s.", propertyPhoto.ID)
 			log.Println("Error: " + err.Error())
+		} else {
+			fmt.Printf("Successfully inserted property photo: %d\n", id)
 		}
-
-		fmt.Printf("Successfully inserted property feature: %d\n", id)
 	}
 
 	flatBrokerProperties := flattenArray(brokersProperties)
@@ -695,8 +696,9 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 		if err != nil {
 			log.Printf("Failed to insert broker property: %s.", brokerProperty.ID)
 			log.Println("Error: " + err.Error())
+		} else {
+			fmt.Printf("Successfully inserted broker property: %d\n", id)
 		}
 
-		fmt.Printf("Successfully inserted broker property: %d\n", id)
 	}
 }
