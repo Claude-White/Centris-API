@@ -140,27 +140,6 @@ func GetAllProperties() []string {
 
 	pins := getAllPins(client, aspNetCoreSession, arrAffinitySameSite)
 	housesHTML := getAllHouses(client, pins, aspNetCoreSession, arrAffinitySameSite)
-
-	// Open the file for writing
-	fileName := "house-links.json"
-	file, err := os.Create(fileName)
-	if err != nil {
-		log.Fatalf("Error creating file: %v", err)
-	}
-	defer file.Close()
-
-	// Create a JSON encoder and disable HTML escaping
-	encoder := json.NewEncoder(file)
-	encoder.SetEscapeHTML(false)
-
-	// Encode the data
-	err = encoder.Encode(housesHTML)
-	if err != nil {
-		log.Fatalf("Error encoding JSON: %v", err)
-	}
-
-	fmt.Printf("Markers JSON saved to file: %s\n", fileName)
-
 	return housesHTML
 }
 
