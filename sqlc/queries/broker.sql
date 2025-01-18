@@ -1,5 +1,6 @@
 -- name: GetAllBrokers :many
-SELECT * FROM broker
+SELECT * 
+FROM broker
 ORDER BY broker.first_name, broker.last_name
 LIMIT @number_of_items::int OFFSET @start_position::int;
 
