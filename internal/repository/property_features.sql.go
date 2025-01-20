@@ -12,6 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateAllPropertiesFeaturesParams struct {
+	ID         uuid.UUID  `json:"id"`
+	PropertyID int64      `json:"property_id"`
+	Title      string     `json:"title"`
+	Value      string     `json:"value"`
+	CreatedAt  *time.Time `json:"created_at"`
+}
+
 const createPropertyFeature = `-- name: CreatePropertyFeature :one
 INSERT INTO property_features (id, property_id, title, value, created_at)
 values (uuid_generate_v4(), $1, $2, $3, $4)

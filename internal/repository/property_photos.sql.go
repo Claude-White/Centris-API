@@ -12,6 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateAllPropertiesPhotosParams struct {
+	ID          uuid.UUID  `json:"id"`
+	PropertyID  int64      `json:"property_id"`
+	Link        string     `json:"link"`
+	Description *string    `json:"description"`
+	CreatedAt   *time.Time `json:"created_at"`
+}
+
 const createPropertyPhoto = `-- name: CreatePropertyPhoto :one
 INSERT INTO property_photo (id, property_id, link, description, created_at)
 values (uuid_generate_v4(), $1, $2, $3, $4)
