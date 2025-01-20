@@ -16,18 +16,18 @@ RETURNING id
 `
 
 type CreatePropertyParams struct {
-	ID                int64   `json:"mls"`
-	Title             string  `json:"title"`
-	Category          string  `json:"category"`
-	Address           string  `json:"address"`
-	CityName          string  `json:"city_name"`
-	Price             float32 `json:"price"`
-	Description       *string `json:"description"`
-	BedroomNumber     *int32  `json:"bedroom_number"`
-	RoomNumber        *int32  `json:"room_number"`
-	BathroomNumber    *int32  `json:"bathroom_number"`
-	Longitude         float32 `json:"longitude"`
-	Latitude          float32 `json:"latitude"`
+	ID             int64   `json:"mls"`
+	Title          string  `json:"title"`
+	Category       string  `json:"category"`
+	Address        string  `json:"address"`
+	CityName       string  `json:"city_name"`
+	Price          float32 `json:"price"`
+	Description    *string `json:"description"`
+	BedroomNumber  *int32  `json:"bedroom_number"`
+	RoomNumber     *int32  `json:"room_number"`
+	BathroomNumber *int32  `json:"bathroom_number"`
+	Longitude      float32 `json:"longitude"`
+	Latitude       float32 `json:"latitude"`
 }
 
 func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) (int64, error) {
@@ -60,7 +60,7 @@ func (q *Queries) DeleteAllProperties(ctx context.Context) error {
 }
 
 const getAllAgencyProperties = `-- name: GetAllAgencyProperties :many
-SELECT property.id, property.title, property.category, property.address, property.city_name, property.neighbourhood_name, property.price, property.description, property.bedroom_number, property.room_number, property.bathroom_number, property.latitude, property.longitude, property.created_at, property.updated_at FROM property
+SELECT property.id, property.title, property.category, property.address, property.city_name, property.price, property.description, property.bedroom_number, property.room_number, property.bathroom_number, property.latitude, property.longitude, property.created_at, property.updated_at FROM property
 INNER JOIN broker_property
 ON property.id = broker_property.property_id
 INNER JOIN broker
@@ -90,7 +90,6 @@ func (q *Queries) GetAllAgencyProperties(ctx context.Context, arg GetAllAgencyPr
 			&i.Category,
 			&i.Address,
 			&i.CityName,
-			&i.NeighbourhoodName,
 			&i.Price,
 			&i.Description,
 			&i.BedroomNumber,
@@ -112,7 +111,7 @@ func (q *Queries) GetAllAgencyProperties(ctx context.Context, arg GetAllAgencyPr
 }
 
 const getAllBrokerProperties = `-- name: GetAllBrokerProperties :many
-SELECT property.id, property.title, property.category, property.address, property.city_name, property.neighbourhood_name, property.price, property.description, property.bedroom_number, property.room_number, property.bathroom_number, property.latitude, property.longitude, property.created_at, property.updated_at FROM property
+SELECT property.id, property.title, property.category, property.address, property.city_name, property.price, property.description, property.bedroom_number, property.room_number, property.bathroom_number, property.latitude, property.longitude, property.created_at, property.updated_at FROM property
 INNER JOIN broker_property
 ON property.id = broker_property.property_id
 WHERE broker_property.broker_id = $1
@@ -140,7 +139,6 @@ func (q *Queries) GetAllBrokerProperties(ctx context.Context, arg GetAllBrokerPr
 			&i.Category,
 			&i.Address,
 			&i.CityName,
-			&i.NeighbourhoodName,
 			&i.Price,
 			&i.Description,
 			&i.BedroomNumber,
@@ -162,7 +160,7 @@ func (q *Queries) GetAllBrokerProperties(ctx context.Context, arg GetAllBrokerPr
 }
 
 const getAllCategoryProperties = `-- name: GetAllCategoryProperties :many
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
+SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 WHERE LOWER(property.category) = $1
 LIMIT $3::int OFFSET $2::int
 `
@@ -188,7 +186,6 @@ func (q *Queries) GetAllCategoryProperties(ctx context.Context, arg GetAllCatego
 			&i.Category,
 			&i.Address,
 			&i.CityName,
-			&i.NeighbourhoodName,
 			&i.Price,
 			&i.Description,
 			&i.BedroomNumber,
@@ -210,7 +207,7 @@ func (q *Queries) GetAllCategoryProperties(ctx context.Context, arg GetAllCatego
 }
 
 const getAllCityProperties = `-- name: GetAllCityProperties :many
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
+SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 WHERE LOWER(property.city_name) = $1
 LIMIT $3::int OFFSET $2::int
 `
@@ -236,55 +233,6 @@ func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityProper
 			&i.Category,
 			&i.Address,
 			&i.CityName,
-			&i.NeighbourhoodName,
-			&i.Price,
-			&i.Description,
-			&i.BedroomNumber,
-			&i.RoomNumber,
-			&i.BathroomNumber,
-			&i.Latitude,
-			&i.Longitude,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllNeighbourhoodProperties = `-- name: GetAllNeighbourhoodProperties :many
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
-WHERE LOWER(property.neighbourhood_name) = $1
-LIMIT $3::int OFFSET $2::int
-`
-
-type GetAllNeighbourhoodPropertiesParams struct {
-	NeighbourhoodName *string `json:"neighbourhood_name"`
-	StartPosition     int32   `json:"start_position"`
-	NumberOfItems     int32   `json:"number_of_items"`
-}
-
-func (q *Queries) GetAllNeighbourhoodProperties(ctx context.Context, arg GetAllNeighbourhoodPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllNeighbourhoodProperties, arg.NeighbourhoodName, arg.StartPosition, arg.NumberOfItems)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Property
-	for rows.Next() {
-		var i Property
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Category,
-			&i.Address,
-			&i.CityName,
-			&i.NeighbourhoodName,
 			&i.Price,
 			&i.Description,
 			&i.BedroomNumber,
@@ -306,7 +254,7 @@ func (q *Queries) GetAllNeighbourhoodProperties(ctx context.Context, arg GetAllN
 }
 
 const getAllProperties = `-- name: GetAllProperties :many
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
+SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 LIMIT $1 OFFSET $2
 `
 
@@ -330,7 +278,6 @@ func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesPara
 			&i.Category,
 			&i.Address,
 			&i.CityName,
-			&i.NeighbourhoodName,
 			&i.Price,
 			&i.Description,
 			&i.BedroomNumber,
@@ -352,7 +299,7 @@ func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesPara
 }
 
 const getAllRadiusProperties = `-- name: GetAllRadiusProperties :many
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at
+SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at
 FROM property
 WHERE (
     6371 * acos(
@@ -384,7 +331,6 @@ func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPr
 			&i.Category,
 			&i.Address,
 			&i.CityName,
-			&i.NeighbourhoodName,
 			&i.Price,
 			&i.Description,
 			&i.BedroomNumber,
@@ -406,7 +352,7 @@ func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPr
 }
 
 const getProperty = `-- name: GetProperty :one
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property 
+SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property 
 WHERE property.id = $1
 LIMIT 1
 `
@@ -420,7 +366,6 @@ func (q *Queries) GetProperty(ctx context.Context, id int64) (Property, error) {
 		&i.Category,
 		&i.Address,
 		&i.CityName,
-		&i.NeighbourhoodName,
 		&i.Price,
 		&i.Description,
 		&i.BedroomNumber,
@@ -435,7 +380,7 @@ func (q *Queries) GetProperty(ctx context.Context, id int64) (Property, error) {
 }
 
 const getPropertyByCoordinates = `-- name: GetPropertyByCoordinates :one
-SELECT id, title, category, address, city_name, neighbourhood_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
+SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
 WHERE property.longitude = $1 AND property.latitude = $2
 LIMIT 1
 `
@@ -454,7 +399,6 @@ func (q *Queries) GetPropertyByCoordinates(ctx context.Context, arg GetPropertyB
 		&i.Category,
 		&i.Address,
 		&i.CityName,
-		&i.NeighbourhoodName,
 		&i.Price,
 		&i.Description,
 		&i.BedroomNumber,

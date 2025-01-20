@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS property (
     category varchar(500) NOT NULL,
     address varchar(500) NOT NULL,
     city_name varchar(500) NOT NULL,
-    neighbourhood_name varchar(500),
     price numeric(15,2) NOT NULL,
     description text,
     bedroom_number integer,

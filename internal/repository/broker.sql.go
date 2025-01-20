@@ -69,17 +69,32 @@ func (q *Queries) DeleteAllBrokers(ctx context.Context) error {
 const getAllBrokers = `-- name: GetAllBrokers :many
 SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at 
 FROM broker
+WHERE ($1::text IS NULL OR name = $1::text)
+    AND ($2::text IS NULL OR agency = $2::text)
+    AND ($3::text IS NULL OR area = $3::text)
+    AND ($4::text IS NULL OR language = $4::text)
 ORDER BY broker.first_name, broker.last_name
-LIMIT $2::int OFFSET $1::int
+LIMIT $6::int OFFSET $5::int
 `
 
 type GetAllBrokersParams struct {
-	StartPosition int32 `json:"start_position"`
-	NumberOfItems int32 `json:"number_of_items"`
+	BrokerName    string `json:"broker_name"`
+	Agency        string `json:"agency"`
+	Area          string `json:"area"`
+	Language      string `json:"language"`
+	StartPosition int32  `json:"start_position"`
+	NumberOfItems int32  `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllBrokers(ctx context.Context, arg GetAllBrokersParams) ([]Broker, error) {
-	rows, err := q.db.Query(ctx, getAllBrokers, arg.StartPosition, arg.NumberOfItems)
+	rows, err := q.db.Query(ctx, getAllBrokers,
+		arg.BrokerName,
+		arg.Agency,
+		arg.Area,
+		arg.Language,
+		arg.StartPosition,
+		arg.NumberOfItems,
+	)
 	if err != nil {
 		return nil, err
 	}

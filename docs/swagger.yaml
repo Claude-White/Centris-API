@@ -66,6 +66,21 @@ definitions:
       updated_at:
         type: string
     type: object
+  server.BrokerRequestBody:
+    properties:
+      agency:
+        type: string
+      area:
+        type: string
+      broker_name:
+        type: string
+      language:
+        type: string
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
   server.Coordinates:
     properties:
       latitude:
@@ -96,7 +111,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RequestBody'
+          $ref: '#/definitions/server.BrokerRequestBody'
       produces:
       - application/json
       responses:

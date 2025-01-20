@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
+                            "$ref": "#/definitions/server.BrokerRequestBody"
                         }
                     }
                 ],
@@ -675,6 +675,29 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "server.BrokerRequestBody": {
+            "type": "object",
+            "properties": {
+                "agency": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "broker_name": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
                 }
             }
         },
