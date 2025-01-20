@@ -1,6 +1,6 @@
 -- name: GetAllProperties :many
 SELECT * FROM property
-LIMIT $1 OFFSET $2;
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetProperty :one
 SELECT * FROM property 

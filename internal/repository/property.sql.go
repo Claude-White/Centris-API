@@ -270,16 +270,16 @@ func (q *Queries) GetAllCityProperties(ctx context.Context, arg GetAllCityProper
 
 const getAllProperties = `-- name: GetAllProperties :many
 SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
-LIMIT $1 OFFSET $2
+LIMIT $2::int OFFSET $1::int
 `
 
 type GetAllPropertiesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	StartPosition int32 `json:"start_position"`
+	NumberOfItems int32 `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllProperties(ctx context.Context, arg GetAllPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllProperties, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllProperties, arg.StartPosition, arg.NumberOfItems)
 	if err != nil {
 		return nil, err
 	}

@@ -69,26 +69,33 @@ func (q *Queries) DeleteAllBrokers(ctx context.Context) error {
 const getAllBrokers = `-- name: GetAllBrokers :many
 SELECT id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at 
 FROM broker
-WHERE ($1::text IS NULL OR name = $1::text)
-    AND ($2::text IS NULL OR agency = $2::text)
-    AND ($3::text IS NULL OR area = $3::text)
-    AND ($4::text IS NULL OR language = $4::text)
+WHERE
+    (broker.first_name IS NULL OR broker.first_name ILIKE '%' || coalesce($1, first_name) || '%') AND
+    (broker.middle_name IS NULL OR broker.middle_name ILIKE '%' || coalesce($2, middle_name) || '%') AND
+    (broker.last_name IS NULL OR broker.last_name ILIKE '%' || coalesce($3, last_name) || '%') AND
+    (broker.agency_name IS NULL OR broker.agency_name ILIKE '%' || coalesce($4, agency_name) || '%') AND
+    (broker.served_areas IS NULL OR broker.served_areas ILIKE '%' || coalesce($5, served_areas) || '%') AND
+    (broker.complementary_info IS NULL OR broker.complementary_info ILIKE '%' || coalesce($6, complementary_info) || '%')
 ORDER BY broker.first_name, broker.last_name
-LIMIT $6::int OFFSET $5::int
+LIMIT $8::int OFFSET $7::int
 `
 
 type GetAllBrokersParams struct {
-	BrokerName    string `json:"broker_name"`
-	Agency        string `json:"agency"`
-	Area          string `json:"area"`
-	Language      string `json:"language"`
-	StartPosition int32  `json:"start_position"`
-	NumberOfItems int32  `json:"number_of_items"`
+	FirstName     *string `json:"first_name"`
+	MiddleName    *string `json:"middle_name"`
+	LastName      *string `json:"last_name"`
+	Agency        *string `json:"agency"`
+	Area          *string `json:"area"`
+	Language      *string `json:"language"`
+	StartPosition int32   `json:"start_position"`
+	NumberOfItems int32   `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllBrokers(ctx context.Context, arg GetAllBrokersParams) ([]Broker, error) {
 	rows, err := q.db.Query(ctx, getAllBrokers,
-		arg.BrokerName,
+		arg.FirstName,
+		arg.MiddleName,
+		arg.LastName,
 		arg.Agency,
 		arg.Area,
 		arg.Language,

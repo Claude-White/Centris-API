@@ -32,6 +32,75 @@ definitions:
       updated_at:
         type: string
     type: object
+  repository.GetAllAgencyPropertiesParams:
+    properties:
+      agency_name:
+        type: string
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
+  repository.GetAllBrokerPropertiesParams:
+    properties:
+      broker_id:
+        type: integer
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
+  repository.GetAllBrokersParams:
+    properties:
+      agency:
+        type: string
+      area:
+        type: string
+      first_name:
+        type: string
+      language:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
+  repository.GetAllCategoryPropertiesParams:
+    properties:
+      category:
+        type: string
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
+  repository.GetAllCityPropertiesParams:
+    properties:
+      city_name:
+        type: string
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
+  repository.GetAllPropertiesParams:
+    properties:
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
+    type: object
+  repository.GetPropertyByCoordinatesParams:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
   repository.Property:
     properties:
       address:
@@ -55,8 +124,6 @@ definitions:
       mls:
         description: MLS number
         type: integer
-      neighbourhood_name:
-        type: string
       price:
         type: number
       room_number:
@@ -65,35 +132,6 @@ definitions:
         type: string
       updated_at:
         type: string
-    type: object
-  server.BrokerRequestBody:
-    properties:
-      agency:
-        type: string
-      area:
-        type: string
-      broker_name:
-        type: string
-      language:
-        type: string
-      number_of_items:
-        type: integer
-      start_position:
-        type: integer
-    type: object
-  server.Coordinates:
-    properties:
-      latitude:
-        type: number
-      longitude:
-        type: number
-    type: object
-  server.RequestBody:
-    properties:
-      number_of_items:
-        type: integer
-      start_position:
-        type: integer
     type: object
 info:
   contact: {}
@@ -111,7 +149,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.BrokerRequestBody'
+          $ref: '#/definitions/repository.GetAllBrokersParams'
       produces:
       - application/json
       responses:
@@ -176,7 +214,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RequestBody'
+          $ref: '#/definitions/repository.GetAllPropertiesParams'
       produces:
       - application/json
       responses:
@@ -230,23 +268,18 @@ paths:
       summary: Get property by MLS number
       tags:
       - Properties
-  /properties/agency/{agencyName}:
+  /properties/agency:
     post:
       consumes:
       - application/json
       description: Retrieves a list of properties for a specific agency with pagination
       parameters:
-      - description: Agency Name
-        in: path
-        name: agencyName
-        required: true
-        type: string
       - description: Pagination parameters
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RequestBody'
+          $ref: '#/definitions/repository.GetAllAgencyPropertiesParams'
       produces:
       - application/json
       responses:
@@ -271,23 +304,18 @@ paths:
       summary: Get all properties by agency
       tags:
       - Properties
-  /properties/broker/{brokerId}:
+  /properties/broker:
     post:
       consumes:
       - application/json
       description: Retrieves a list of properties for a specific broker with pagination
       parameters:
-      - description: Broker ID
-        in: path
-        name: brokerId
-        required: true
-        type: integer
       - description: Pagination parameters
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RequestBody'
+          $ref: '#/definitions/repository.GetAllBrokerPropertiesParams'
       produces:
       - application/json
       responses:
@@ -312,23 +340,18 @@ paths:
       summary: Get all properties by broker
       tags:
       - Properties
-  /properties/category/{categoryName}:
+  /properties/category:
     post:
       consumes:
       - application/json
       description: Retrieves a list of properties for a specific category with pagination
       parameters:
-      - description: Category Name
-        in: path
-        name: categoryName
-        required: true
-        type: string
       - description: Pagination parameters
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RequestBody'
+          $ref: '#/definitions/repository.GetAllCategoryPropertiesParams'
       produces:
       - application/json
       responses:
@@ -353,23 +376,18 @@ paths:
       summary: Get all properties by category
       tags:
       - Properties
-  /properties/city/{cityName}:
+  /properties/city:
     post:
       consumes:
       - application/json
-      description: Retrieves a list of properties for a specific city with pagination
+      description: Retrieves a list of properties for a specific radius with pagination
       parameters:
-      - description: City Name
-        in: path
-        name: cityName
-        required: true
-        type: string
       - description: Pagination parameters
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RequestBody'
+          $ref: '#/definitions/repository.GetAllCityPropertiesParams'
       produces:
       - application/json
       responses:
@@ -380,21 +398,21 @@ paths:
               $ref: '#/definitions/repository.Property'
             type: array
         "400":
-          description: Invalid city name or request body
+          description: Invalid radius or request body
           schema:
             type: string
         "404":
-          description: City properties not found
+          description: Properties not found
           schema:
             type: string
         "500":
           description: Internal server error
           schema:
             type: string
-      summary: Get all properties by city
+      summary: Get all properties by radius
       tags:
       - Properties
-  /properties/coordinates:
+  /properties/radius:
     post:
       consumes:
       - application/json
@@ -405,7 +423,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.Coordinates'
+          $ref: '#/definitions/repository.GetPropertyByCoordinatesParams'
       produces:
       - application/json
       responses:
@@ -426,48 +444,6 @@ paths:
           schema:
             type: string
       summary: Get a property by coordinates
-      tags:
-      - Properties
-  /properties/neighbourhood/{neighbourhoodName}:
-    post:
-      consumes:
-      - application/json
-      description: Retrieves a list of properties for a specific neighbourhood with
-        pagination
-      parameters:
-      - description: Neighbourhood Name
-        in: path
-        name: neighbourhoodName
-        required: true
-        type: string
-      - description: Pagination parameters
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/server.RequestBody'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/repository.Property'
-            type: array
-        "400":
-          description: Invalid neighbourhood name or request body
-          schema:
-            type: string
-        "404":
-          description: Neighbourhood properties not found
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Get all properties by neighbourhood
       tags:
       - Properties
 swagger: "2.0"
