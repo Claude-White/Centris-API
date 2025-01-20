@@ -12,6 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateAllPropertiesExpensesParams struct {
+	ID           uuid.UUID  `json:"id"`
+	PropertyID   int64      `json:"property_id"`
+	Type         string     `json:"type"`
+	AnnualPrice  float32    `json:"annual_price"`
+	MonthlyPrice float32    `json:"monthly_price"`
+	CreatedAt    *time.Time `json:"created_at"`
+}
+
 const createPropertyExpenses = `-- name: CreatePropertyExpenses :one
 INSERT INTO property_expenses (id, property_id, type, annual_price, monthly_price, created_at)
 values (uuid_generate_v4(), $1, $2, $3, $4, $5)

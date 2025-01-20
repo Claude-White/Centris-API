@@ -584,8 +584,9 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "All properties deleted.")
 
+	allProperties := []repository.CreateAllPropertiesParams{}
 	for _, property := range properties {
-		propertyParams := repository.CreatePropertyParams{
+		propertyParams := repository.CreateAllPropertiesParams{
 			ID:             property.ID,
 			Title:          property.Title,
 			Category:       property.Category,
@@ -599,85 +600,71 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 			Latitude:       property.Latitude,
 			Longitude:      property.Longitude,
 		}
-
-		id, err := s.queries.CreateProperty(ctx, propertyParams)
-		if err != nil {
-			log.Printf("Failed to insert property: %d", propertyParams.ID)
-			log.Println("Error: " + err.Error())
-		} else {
-			fmt.Printf("Successfully inserted property: %d\n", id)
-		}
+		fmt.Println("Property" + string(propertyParams.ID) + "Added")
+		allProperties = append(allProperties, propertyParams)
+	}
+	count, err := s.queries.CreateAllProperties(ctx, allProperties)
+	if err != nil {
+		log.Printf("Failed to insert %d properties: %s", count, err)
+		SendNotification("Failed to Insert", "An error occured while inserting all properties:\n"+err.Error())
+	} else {
+		fmt.Printf("Successfully inserted %d properties\n", count)
+		SendNotification("Process Complete", "All properties successfully inserted.")
 	}
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
+	allPropertiesExpenses := []repository.CreateAllPropertiesExpensesParams{}
 	for _, propertyExpense := range flatPropertiesExpenses {
-		propertyExpenseParams := repository.CreatePropertyExpensesParams{
-			PropertyID:   propertyExpense.PropertyID,
-			Type:         propertyExpense.Type,
-			AnnualPrice:  propertyExpense.AnnualPrice,
-			MonthlyPrice: propertyExpense.MonthlyPrice,
-			CreatedAt:    propertyExpense.CreatedAt,
-		}
-
-		id, err := s.queries.CreatePropertyExpenses(ctx, propertyExpenseParams)
-		if err != nil {
-			log.Printf("Failed to insert property expense: %s.", propertyExpense.ID)
-			log.Println("Error: " + err.Error())
-		}
-		fmt.Printf("Successfully inserted property expense: %d\n", id)
+		allPropertiesExpenses = append(allPropertiesExpenses, repository.CreateAllPropertiesExpensesParams(propertyExpense))
+	}
+	count, err = s.queries.CreateAllPropertiesExpenses(ctx, allPropertiesExpenses)
+	if err != nil {
+		log.Printf("Failed to insert %d property expenses: %s", count, err)
+		SendNotification("Failed to Insert", "An error occured while inserting all property expenses:\n"+err.Error())
+	} else {
+		fmt.Printf("Successfully inserted %d property expenses\n", count)
+		SendNotification("Process Complete", "All property expenses successfully inserted.")
 	}
 
 	flatPropertiesFeatures := flattenArray(propertiesFeatures)
+	allPropertiesFeatures := make([]repository.CreateAllPropertiesFeaturesParams, 0, len(flatPropertiesFeatures))
 	for _, propertyFeature := range flatPropertiesFeatures {
-		propertyFeatureParams := repository.CreatePropertyFeatureParams{
-			PropertyID: propertyFeature.PropertyID,
-			Title:      propertyFeature.Title,
-			Value:      propertyFeature.Value,
-			CreatedAt:  propertyFeature.CreatedAt,
-		}
-
-		id, err := s.queries.CreatePropertyFeature(ctx, propertyFeatureParams)
-		if err != nil {
-			log.Printf("Failed to insert property feature: %s.", propertyFeature.ID)
-			log.Println("Error: " + err.Error())
-		} else {
-			fmt.Printf("Successfully inserted property feature: %d\n", id)
-		}
+		allPropertiesFeatures = append(allPropertiesFeatures, repository.CreateAllPropertiesFeaturesParams(propertyFeature))
+	}
+	count, err = s.queries.CreateAllPropertiesFeatures(ctx, allPropertiesFeatures)
+	if err != nil {
+		log.Printf("Failed to insert %d property features: %s", count, err)
+		SendNotification("Failed to Insert", "An error occured while inserting all property features:\n"+err.Error())
+	} else {
+		fmt.Printf("Successfully inserted %d properties features\n", count)
+		SendNotification("Process Complete", "All property features successfully inserted.")
 	}
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
+	allPropertiesPhotos := []repository.CreateAllPropertiesPhotosParams{}
 	for _, propertyPhoto := range flatPropertiesPhotos {
-		propertyPhotoParams := repository.CreatePropertyPhotoParams{
-			PropertyID:  propertyPhoto.PropertyID,
-			Link:        propertyPhoto.Link,
-			Description: propertyPhoto.Description,
-			CreatedAt:   propertyPhoto.CreatedAt,
-		}
-
-		id, err := s.queries.CreatePropertyPhoto(ctx, propertyPhotoParams)
-		if err != nil {
-			log.Printf("Failed to insert property photo: %s.", propertyPhoto.ID)
-			log.Println("Error: " + err.Error())
-		} else {
-			fmt.Printf("Successfully inserted property photo: %d\n", id)
-		}
+		allPropertiesPhotos = append(allPropertiesPhotos, repository.CreateAllPropertiesPhotosParams(propertyPhoto))
+	}
+	count, err = s.queries.CreateAllPropertiesPhotos(ctx, allPropertiesPhotos)
+	if err != nil {
+		log.Printf("Failed to insert %d property photos: %s", count, err)
+		SendNotification("Failed to Insert", "An error occured while inserting all property photos:\n"+err.Error())
+	} else {
+		fmt.Printf("Successfully inserted %d properties\n", count)
+		SendNotification("Process Complete", "All property photos successfully inserted.")
 	}
 
 	flatBrokerProperties := flattenArray(brokersProperties)
+	allBrokersProperties := []repository.CreateAllBrokersPropertiesParams{}
 	for _, brokerProperty := range flatBrokerProperties {
-		brokerPropertyParams := repository.CreateBrokerPropertyParams{
-			BrokerID:   brokerProperty.BrokerID,
-			PropertyID: brokerProperty.PropertyID,
-			CreatedAt:  brokerProperty.CreatedAt,
-		}
-
-		id, err := s.queries.CreateBrokerProperty(ctx, brokerPropertyParams)
-		if err != nil {
-			log.Printf("Failed to insert broker property: %s.", brokerProperty.ID)
-			log.Println("Error: " + err.Error())
-		} else {
-			fmt.Printf("Successfully inserted broker property: %d\n", id)
-		}
-
+		allBrokersProperties = append(allBrokersProperties, repository.CreateAllBrokersPropertiesParams(brokerProperty))
+	}
+	count, err = s.queries.CreateAllBrokersProperties(ctx, allBrokersProperties)
+	if err != nil {
+		log.Printf("Failed to insert %d broker properties: %s", count, err)
+		SendNotification("Failed to Insert", "An error occured while inserting all broker properties:\n"+err.Error())
+	} else {
+		fmt.Printf("Successfully inserted %d broker properties\n", count)
+		SendNotification("Process Complete", "All broker properties successfully inserted.")
 	}
 }

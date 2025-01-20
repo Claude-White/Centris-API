@@ -9,6 +9,21 @@ import (
 	"context"
 )
 
+type CreateAllPropertiesParams struct {
+	ID             int64   `json:"mls"`
+	Title          string  `json:"title"`
+	Category       string  `json:"category"`
+	Address        string  `json:"address"`
+	CityName       string  `json:"city_name"`
+	Price          float32 `json:"price"`
+	Description    *string `json:"description"`
+	BedroomNumber  *int32  `json:"bedroom_number"`
+	RoomNumber     *int32  `json:"room_number"`
+	BathroomNumber *int32  `json:"bathroom_number"`
+	Longitude      float32 `json:"longitude"`
+	Latitude       float32 `json:"latitude"`
+}
+
 const createProperty = `-- name: CreateProperty :one
 INSERT INTO property (id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)

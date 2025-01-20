@@ -8,6 +8,12 @@ type Coordinate struct {
 	Lng float64 `json:"Lng"`
 }
 
+// Result wraps a value and potential error
+type Result[T any] struct {
+	Value T
+	Err   error
+}
+
 // MapBounds represents the geographic bounds
 type MapBounds struct {
 	SouthWest Coordinate `json:"SouthWest"`
