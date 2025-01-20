@@ -13,23 +13,9 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-type BrokerRequestBody struct {
-	StartPosition int32   `json:"start_position"`
-	NumberOfItems int32   `json:"number_of_items"`
-	BrokerName    *string `json:"broker_name"`
-	Agency        *string `json:"agency"`
-	Area          *string `json:"area"`
-	Language      *string `json:"language"`
-}
-
 type RequestBody struct {
 	StartPosition int32 `json:"start_position"`
 	NumberOfItems int32 `json:"number_of_items"`
-}
-
-type Coordinates struct {
-	Longitude float32 `json:"longitude"`
-	Latitude  float32 `json:"latitude"`
 }
 
 type GeoFilterCoordinates struct {
@@ -140,7 +126,7 @@ func (s *Server) GetProperty(w http.ResponseWriter, r *http.Request) {
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RequestBody	true	"Pagination parameters"
+//	@Param			request	body		repository.GetAllPropertiesParams	true	"Pagination parameters"
 //	@Success		200		{array}		repository.Property
 //	@Failure		400		{object}	string	"Invalid request body"
 //	@Failure		500		{object}	string	"Internal server error"
@@ -154,17 +140,14 @@ func (s *Server) GetAllProperties(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var req RequestBody
+	var req repository.GetAllPropertiesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
 
-	properties, err := s.queries.GetAllProperties(ctx, repository.GetAllPropertiesParams{
-		Limit:  req.NumberOfItems,
-		Offset: req.StartPosition,
-	})
+	properties, err := s.queries.GetAllProperties(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get properties: %v", err)
 		http.Error(w, "Failed to get properties", http.StatusInternalServerError)
@@ -188,12 +171,12 @@ func (s *Server) GetAllProperties(w http.ResponseWriter, r *http.Request) {
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		Coordinates	true	"Coordinates parameters"
+//	@Param			request	body		repository.GetPropertyByCoordinatesParams	true	"Coordinates parameters"
 //	@Success		200		{object}	repository.Property
 //	@Failure		400		{object}	string	"Invalid request body"
 //	@Failure		404		{object}	string	"Property not found"
 //	@Failure		500		{object}	string	"Internal server error"
-//	@Router			/properties/coordinates [post]
+//	@Router			/properties/radius [post]
 func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	body, err := io.ReadAll(r.Body)
@@ -203,17 +186,14 @@ func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request
 	}
 	defer r.Body.Close()
 
-	var req Coordinates
+	var req repository.GetPropertyByCoordinatesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
 
-	property, err := s.queries.GetPropertyByCoordinates(ctx, repository.GetPropertyByCoordinatesParams{
-		Longitude: req.Longitude,
-		Latitude:  req.Latitude,
-	})
+	property, err := s.queries.GetPropertyByCoordinates(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get properties: %v", err)
 		http.Error(w, "Failed to get properties", http.StatusInternalServerError)
@@ -240,19 +220,14 @@ func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			brokerId	path		int			true	"Broker ID"
-//	@Param			request		body		RequestBody	true	"Pagination parameters"
-//	@Success		200			{array}		repository.Property
-//	@Failure		400			{object}	string	"Invalid broker ID or request body"
-//	@Failure		404			{object}	string	"Broker properties not found"
-//	@Failure		500			{object}	string	"Internal server error"
-//	@Router			/properties/broker/{brokerId} [post]
+//	@Param			request	body		repository.GetAllBrokerPropertiesParams	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Property
+//	@Failure		400		{object}	string	"Invalid broker ID or request body"
+//	@Failure		404		{object}	string	"Broker properties not found"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties/broker [post]
 func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	brokerId, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("brokerId")), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid broker id", http.StatusBadRequest)
-	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -261,7 +236,7 @@ func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	var req RequestBody
+	var req repository.GetAllBrokerPropertiesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -269,7 +244,7 @@ func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) 
 	}
 
 	properties, err := s.queries.GetAllBrokerProperties(ctx, repository.GetAllBrokerPropertiesParams{
-		BrokerID:      brokerId,
+		BrokerID:      req.BrokerID,
 		NumberOfItems: req.NumberOfItems,
 		StartPosition: req.StartPosition,
 	})
@@ -300,16 +275,14 @@ func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) 
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			agencyName	path		string		true	"Agency Name"
-//	@Param			request		body		RequestBody	true	"Pagination parameters"
-//	@Success		200			{array}		repository.Property
-//	@Failure		400			{object}	string	"Invalid agency name or request body"
-//	@Failure		404			{object}	string	"Agency properties not found"
-//	@Failure		500			{object}	string	"Internal server error"
-//	@Router			/properties/agency/{agencyName} [post]
+//	@Param			request	body		repository.GetAllAgencyPropertiesParams	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Property
+//	@Failure		400		{object}	string	"Invalid agency name or request body"
+//	@Failure		404		{object}	string	"Agency properties not found"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties/agency [post]
 func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	agency := strings.ToLower(strings.TrimSpace(r.PathValue("agencyName")))
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -318,7 +291,7 @@ func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	var req RequestBody
+	var req repository.GetAllAgencyPropertiesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -326,7 +299,7 @@ func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) 
 	}
 
 	properties, err := s.queries.GetAllAgencyProperties(ctx, repository.GetAllAgencyPropertiesParams{
-		AgencyName:    agency,
+		AgencyName:    req.AgencyName,
 		NumberOfItems: req.NumberOfItems,
 		StartPosition: req.StartPosition,
 	})
@@ -357,16 +330,14 @@ func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) 
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			categoryName	path		string		true	"Category Name"
-//	@Param			request			body		RequestBody	true	"Pagination parameters"
-//	@Success		200				{array}		repository.Property
-//	@Failure		400				{object}	string	"Invalid category name or request body"
-//	@Failure		404				{object}	string	"Category properties not found"
-//	@Failure		500				{object}	string	"Internal server error"
-//	@Router			/properties/category/{categoryName} [post]
+//	@Param			request	body		repository.GetAllCategoryPropertiesParams	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Property
+//	@Failure		400		{object}	string	"Invalid category name or request body"
+//	@Failure		404		{object}	string	"Category properties not found"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties/category [post]
 func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	category := strings.ToLower(strings.TrimSpace(r.PathValue("categoryName")))
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -375,7 +346,7 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 	}
 	defer r.Body.Close()
 
-	var req RequestBody
+	var req repository.GetAllCategoryPropertiesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -383,7 +354,7 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 	}
 
 	properties, err := s.queries.GetAllCategoryProperties(ctx, repository.GetAllCategoryPropertiesParams{
-		Category:      category,
+		Category:      req.Category,
 		NumberOfItems: req.NumberOfItems,
 		StartPosition: req.StartPosition,
 	})
@@ -414,25 +385,14 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			cityName	path		string		true	"City Name"
-//	@Param			request		body		RequestBody	true	"Pagination parameters"
-//	@Success		200			{array}		repository.Property
-//	@Failure		400			{object}	string	"Invalid city name or request body"
-//	@Failure		404			{object}	string	"City properties not found"
-//	@Failure		500			{object}	string	"Internal server error"
-//	@Router			/properties/city/{cityName} [post]
+//	@Param			request	body		repository.GetAllCityPropertiesParams	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Property
+//	@Failure		400		{object}	string	"Invalid city name or request body"
+//	@Failure		404		{object}	string	"City properties not found"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties/city [post]
 func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	var city string
-	cityName := strings.TrimSpace(r.PathValue("cityName"))
-	if cityName == "" {
-		http.Error(w, "City name is required", http.StatusBadRequest)
-		return
-	} else {
-		lowerCaseCityName := strings.ToLower(cityName)
-		city = lowerCaseCityName
-		// was &lowerCaseCityName
-	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -441,7 +401,7 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var req RequestBody
+	var req repository.GetAllCityPropertiesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -449,7 +409,7 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	}
 
 	properties, err := s.queries.GetAllCityProperties(ctx, repository.GetAllCityPropertiesParams{
-		CityName:      city,
+		CityName:      req.CityName,
 		NumberOfItems: req.NumberOfItems,
 		StartPosition: req.StartPosition,
 	})
@@ -475,14 +435,21 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetAllRadiusProperties godoc
+//
+//	@Summary		Get all properties by radius
+//	@Description	Retrieves a list of properties for a specific radius with pagination
+//	@Tags			Properties
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		repository.GetAllCityPropertiesParams	true	"Pagination parameters"
+//	@Success		200		{array}		repository.Property
+//	@Failure		400		{object}	string	"Invalid radius or request body"
+//	@Failure		404		{object}	string	"Properties not found"
+//	@Failure		500		{object}	string	"Internal server error"
+//	@Router			/properties/city [post]
 func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	radius := strings.TrimSpace(r.PathValue("radius"))
-
-	floatValue, err := strconv.ParseFloat(radius, 64)
-	if err != nil {
-		http.Error(w, "Invalid radius value", http.StatusBadRequest)
-	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -491,7 +458,7 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	var req GeoFilterCoordinates
+	var req repository.GetAllRadiusPropertiesParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -501,7 +468,7 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 	properties, err := s.queries.GetAllRadiusProperties(ctx, repository.GetAllRadiusPropertiesParams{
 		Latitude:  req.Latitude,
 		Longitude: req.Longitude,
-		Radius:    floatValue,
+		Radius:    req.Radius,
 	})
 	if err != nil {
 		log.Printf("Failed to get radius properties: %v", err)
@@ -532,7 +499,7 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 //	@Tags			Brokers
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		BrokerRequestBody	true	"Pagination parameters"
+//	@Param			request	body		repository.GetAllBrokersParams	true	"Pagination parameters"
 //	@Success		200		{array}		repository.Broker
 //	@Failure		400		{object}	string	"Invalid request body"
 //	@Failure		500		{object}	string	"Internal server error"
@@ -546,7 +513,7 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var req BrokerRequestBody
+	var req repository.GetAllBrokersParams
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -563,14 +530,7 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brokers, err := s.queries.GetAllBrokers(ctx, repository.GetAllBrokersParams{
-		NumberOfItems: req.NumberOfItems,
-		StartPosition: req.StartPosition,
-		BrokerName:    coalesce(req.BrokerName),
-		Agency:        coalesce(req.Agency),
-		Area:          coalesce(req.Area),
-		Language:      coalesce(req.Language),
-	})
+	brokers, err := s.queries.GetAllBrokers(ctx, req)
 	if err != nil {
 		http.Error(w, "Failed to get brokers", http.StatusInternalServerError)
 		return

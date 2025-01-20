@@ -1,10 +1,13 @@
 -- name: GetAllBrokers :many
 SELECT * 
 FROM broker
-WHERE (@broker_name::text IS NULL OR name = @broker_name::text)
-    AND (@agency::text IS NULL OR agency = @agency::text)
-    AND (@area::text IS NULL OR area = @area::text)
-    AND (@language::text IS NULL OR language = @language::text)
+WHERE
+    (broker.first_name IS NULL OR broker.first_name ILIKE '%' || coalesce(sqlc.narg('first_name'), first_name) || '%') AND
+    (broker.middle_name IS NULL OR broker.middle_name ILIKE '%' || coalesce(sqlc.narg('middle_name'), middle_name) || '%') AND
+    (broker.last_name IS NULL OR broker.last_name ILIKE '%' || coalesce(sqlc.narg('last_name'), last_name) || '%') AND
+    (broker.agency_name IS NULL OR broker.agency_name ILIKE '%' || coalesce(sqlc.narg('agency'), agency_name) || '%') AND
+    (broker.served_areas IS NULL OR broker.served_areas ILIKE '%' || coalesce(sqlc.narg('area'), served_areas) || '%') AND
+    (broker.complementary_info IS NULL OR broker.complementary_info ILIKE '%' || coalesce(sqlc.narg('language'), complementary_info) || '%')
 ORDER BY broker.first_name, broker.last_name
 LIMIT @number_of_items::int OFFSET @start_position::int;
 

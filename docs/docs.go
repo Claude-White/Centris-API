@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.BrokerRequestBody"
+                            "$ref": "#/definitions/repository.GetAllBrokersParams"
                         }
                     }
                 ],
@@ -134,7 +134,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
+                            "$ref": "#/definitions/repository.GetAllPropertiesParams"
                         }
                     }
                 ],
@@ -163,7 +163,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/properties/agency/{agencyName}": {
+        "/properties/agency": {
             "post": {
                 "description": "Retrieves a list of properties for a specific agency with pagination",
                 "consumes": [
@@ -178,19 +178,12 @@ const docTemplate = `{
                 "summary": "Get all properties by agency",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Agency Name",
-                        "name": "agencyName",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "description": "Pagination parameters",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
+                            "$ref": "#/definitions/repository.GetAllAgencyPropertiesParams"
                         }
                     }
                 ],
@@ -225,7 +218,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/properties/broker/{brokerId}": {
+        "/properties/broker": {
             "post": {
                 "description": "Retrieves a list of properties for a specific broker with pagination",
                 "consumes": [
@@ -240,19 +233,12 @@ const docTemplate = `{
                 "summary": "Get all properties by broker",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Broker ID",
-                        "name": "brokerId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "description": "Pagination parameters",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
+                            "$ref": "#/definitions/repository.GetAllBrokerPropertiesParams"
                         }
                     }
                 ],
@@ -287,7 +273,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/properties/category/{categoryName}": {
+        "/properties/category": {
             "post": {
                 "description": "Retrieves a list of properties for a specific category with pagination",
                 "consumes": [
@@ -302,19 +288,12 @@ const docTemplate = `{
                 "summary": "Get all properties by category",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Category Name",
-                        "name": "categoryName",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "description": "Pagination parameters",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
+                            "$ref": "#/definitions/repository.GetAllCategoryPropertiesParams"
                         }
                     }
                 ],
@@ -349,9 +328,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/properties/city/{cityName}": {
+        "/properties/city": {
             "post": {
-                "description": "Retrieves a list of properties for a specific city with pagination",
+                "description": "Retrieves a list of properties for a specific radius with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -361,22 +340,15 @@ const docTemplate = `{
                 "tags": [
                     "Properties"
                 ],
-                "summary": "Get all properties by city",
+                "summary": "Get all properties by radius",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "City Name",
-                        "name": "cityName",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "description": "Pagination parameters",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
+                            "$ref": "#/definitions/repository.GetAllCityPropertiesParams"
                         }
                     }
                 ],
@@ -391,13 +363,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid city name or request body",
+                        "description": "Invalid radius or request body",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "404": {
-                        "description": "City properties not found",
+                        "description": "Properties not found",
                         "schema": {
                             "type": "string"
                         }
@@ -411,7 +383,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/properties/coordinates": {
+        "/properties/radius": {
             "post": {
                 "description": "Retrieves a property based on latitude and longitude",
                 "consumes": [
@@ -431,7 +403,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.Coordinates"
+                            "$ref": "#/definitions/repository.GetPropertyByCoordinatesParams"
                         }
                     }
                 ],
@@ -450,68 +422,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Property not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/properties/neighbourhood/{neighbourhoodName}": {
-            "post": {
-                "description": "Retrieves a list of properties for a specific neighbourhood with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Properties"
-                ],
-                "summary": "Get all properties by neighbourhood",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Neighbourhood Name",
-                        "name": "neighbourhoodName",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Pagination parameters",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/server.RequestBody"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/repository.Property"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid neighbourhood name or request body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Neighbourhood properties not found",
                         "schema": {
                             "type": "string"
                         }
@@ -627,6 +537,113 @@ const docTemplate = `{
                 }
             }
         },
+        "repository.GetAllAgencyPropertiesParams": {
+            "type": "object",
+            "properties": {
+                "agency_name": {
+                    "type": "string"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.GetAllBrokerPropertiesParams": {
+            "type": "object",
+            "properties": {
+                "broker_id": {
+                    "type": "integer"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.GetAllBrokersParams": {
+            "type": "object",
+            "properties": {
+                "agency": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.GetAllCategoryPropertiesParams": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.GetAllCityPropertiesParams": {
+            "type": "object",
+            "properties": {
+                "city_name": {
+                    "type": "string"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.GetAllPropertiesParams": {
+            "type": "object",
+            "properties": {
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
+        "repository.GetPropertyByCoordinatesParams": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
         "repository.Property": {
             "type": "object",
             "properties": {
@@ -661,9 +678,6 @@ const docTemplate = `{
                     "description": "MLS number",
                     "type": "integer"
                 },
-                "neighbourhood_name": {
-                    "type": "string"
-                },
                 "price": {
                     "type": "number"
                 },
@@ -675,51 +689,6 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "server.BrokerRequestBody": {
-            "type": "object",
-            "properties": {
-                "agency": {
-                    "type": "string"
-                },
-                "area": {
-                    "type": "string"
-                },
-                "broker_name": {
-                    "type": "string"
-                },
-                "language": {
-                    "type": "string"
-                },
-                "number_of_items": {
-                    "type": "integer"
-                },
-                "start_position": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.Coordinates": {
-            "type": "object",
-            "properties": {
-                "latitude": {
-                    "type": "number"
-                },
-                "longitude": {
-                    "type": "number"
-                }
-            }
-        },
-        "server.RequestBody": {
-            "type": "object",
-            "properties": {
-                "number_of_items": {
-                    "type": "integer"
-                },
-                "start_position": {
-                    "type": "integer"
                 }
             }
         }
