@@ -13,6 +13,15 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+type BrokerRequestBody struct {
+	StartPosition int32   `json:"start_position"`
+	NumberOfItems int32   `json:"number_of_items"`
+	BrokerName    *string `json:"broker_name"`
+	Agency        *string `json:"agency"`
+	Area          *string `json:"area"`
+	Language      *string `json:"language"`
+}
+
 type RequestBody struct {
 	StartPosition int32 `json:"start_position"`
 	NumberOfItems int32 `json:"number_of_items"`
@@ -41,7 +50,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("POST /properties/broker/{brokerId}", s.GetAllBrokerProperties)
 	mux.HandleFunc("POST /properties/agency/{agencyName}", s.GetAllAgencyProperties)
 	mux.HandleFunc("POST /properties/city/{cityName}", s.GetAllCityProperties)
-	mux.HandleFunc("POST /properties/neighbourhood/{neighbourhoodName}", s.GetAllNeighbourhoodProperties)
 	mux.HandleFunc("POST /properties/geo-filter/{radius}", s.GetAllRadiusProperties)
 
 	// Broker enpoints
@@ -467,71 +475,6 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetAllNeighbourhoodProperties godoc
-//
-//	@Summary		Get all properties by neighbourhood
-//	@Description	Retrieves a list of properties for a specific neighbourhood with pagination
-//	@Tags			Properties
-//	@Accept			json
-//	@Produce		json
-//	@Param			neighbourhoodName	path		string		true	"Neighbourhood Name"
-//	@Param			request				body		RequestBody	true	"Pagination parameters"
-//	@Success		200					{array}		repository.Property
-//	@Failure		400					{object}	string	"Invalid neighbourhood name or request body"
-//	@Failure		404					{object}	string	"Neighbourhood properties not found"
-//	@Failure		500					{object}	string	"Internal server error"
-//	@Router			/properties/neighbourhood/{neighbourhoodName} [post]
-func (s *Server) GetAllNeighbourhoodProperties(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	var neighbourhood *string
-	neighbourhoodName := strings.TrimSpace(r.PathValue("neighbourhoodName"))
-	if neighbourhoodName == "" {
-		http.Error(w, "Neighbourhood name is required", http.StatusBadRequest)
-		return
-	} else {
-		lowerCaseCityName := strings.ToLower(neighbourhoodName)
-		neighbourhood = &lowerCaseCityName
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	var req RequestBody
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return
-	}
-
-	properties, err := s.queries.GetAllNeighbourhoodProperties(ctx, repository.GetAllNeighbourhoodPropertiesParams{
-		NeighbourhoodName: neighbourhood,
-		NumberOfItems:     req.NumberOfItems,
-		StartPosition:     req.StartPosition,
-	})
-	if err != nil {
-		log.Printf("Failed to get neighbourhood properties: %v", err)
-		http.Error(w, "Failed to get neighbourhood properties", http.StatusInternalServerError)
-	}
-
-	if properties == nil {
-		http.Error(w, "Neighbourhood properties not found", http.StatusNotFound)
-	}
-
-	resp, err := json.Marshal(properties)
-	if err != nil {
-		http.Error(w, "Failed to marshal neighbourhood properties response", http.StatusInternalServerError)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(resp); err != nil {
-		log.Printf("Failed to write response: %v", err)
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
-}
-
 func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	radius := strings.TrimSpace(r.PathValue("radius"))
@@ -589,7 +532,7 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 //	@Tags			Brokers
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RequestBody	true	"Pagination parameters"
+//	@Param			request	body		BrokerRequestBody	true	"Pagination parameters"
 //	@Success		200		{array}		repository.Broker
 //	@Failure		400		{object}	string	"Invalid request body"
 //	@Failure		500		{object}	string	"Internal server error"
@@ -603,7 +546,7 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var req RequestBody
+	var req BrokerRequestBody
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -623,6 +566,10 @@ func (s *Server) GetAllBrokers(w http.ResponseWriter, r *http.Request) {
 	brokers, err := s.queries.GetAllBrokers(ctx, repository.GetAllBrokersParams{
 		NumberOfItems: req.NumberOfItems,
 		StartPosition: req.StartPosition,
+		BrokerName:    coalesce(req.BrokerName),
+		Agency:        coalesce(req.Agency),
+		Area:          coalesce(req.Area),
+		Language:      coalesce(req.Language),
 	})
 	if err != nil {
 		http.Error(w, "Failed to get brokers", http.StatusInternalServerError)

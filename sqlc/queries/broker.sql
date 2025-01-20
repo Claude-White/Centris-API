@@ -1,6 +1,10 @@
 -- name: GetAllBrokers :many
 SELECT * 
 FROM broker
+WHERE (@broker_name::text IS NULL OR name = @broker_name::text)
+    AND (@agency::text IS NULL OR agency = @agency::text)
+    AND (@area::text IS NULL OR area = @area::text)
+    AND (@language::text IS NULL OR language = @language::text)
 ORDER BY broker.first_name, broker.last_name
 LIMIT @number_of_items::int OFFSET @start_position::int;
 

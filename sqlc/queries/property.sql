@@ -38,11 +38,6 @@ SELECT * FROM property
 WHERE LOWER(property.city_name) = $1
 LIMIT @number_of_items::int OFFSET @start_position::int;
 
--- name: GetAllNeighbourhoodProperties :many
-SELECT * FROM property
-WHERE LOWER(property.neighbourhood_name) = $1
-LIMIT @number_of_items::int OFFSET @start_position::int;
-
 -- name: GetAllRadiusProperties :many
 SELECT *
 FROM property

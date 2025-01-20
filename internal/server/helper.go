@@ -24,3 +24,10 @@ func GetCompleteBroker(s *Server, ctx context.Context, broker repository.Broker)
 
 	return completeBroker, nil
 }
+
+func coalesce(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
