@@ -12,6 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateAllBrokerExternalLinkParams struct {
+	ID        uuid.UUID  `json:"id"`
+	BrokerID  int64      `json:"broker_id"`
+	Type      string     `json:"type"`
+	Link      string     `json:"link"`
+	CreatedAt *time.Time `json:"created_at"`
+}
+
 const createBrokerExternalLink = `-- name: CreateBrokerExternalLink :one
 INSERT INTO broker_external_links (id, broker_id, type, link, created_at)
 values (uuid_generate_v4(), $1, $2, $3, $4)

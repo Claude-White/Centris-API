@@ -126,10 +126,10 @@ func parseBrokerName(fullName string) (string, *string, string) {
 	return firstName, middleName, lastName
 }
 
-func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAffinitySameSite string) ([]repository.Broker, [][]repository.BrokerPhone, [][]repository.BrokerExternalLink) {
-	brokerResults := make(chan repository.Broker, numberOfBrokers)
-	brokerPhoneResults := make(chan []repository.BrokerPhone, numberOfBrokers)
-	brokerExternalLinkResults := make(chan []repository.BrokerExternalLink, numberOfBrokers)
+func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAffinitySameSite string) ([]repository.CreateAllBrokersParams, [][]repository.CreateAllBrokerPhoneParams, [][]repository.CreateAllBrokerExternalLinkParams) {
+	brokerResults := make(chan repository.CreateAllBrokersParams, numberOfBrokers)
+	brokerPhoneResults := make(chan []repository.CreateAllBrokerPhoneParams, numberOfBrokers)
+	brokerExternalLinkResults := make(chan []repository.CreateAllBrokerExternalLinkParams, numberOfBrokers)
 	sem := make(chan struct{}, 50) // Limit to 50 concurrent requests
 
 	for position := 0; position < numberOfBrokers; position++ {
@@ -154,9 +154,9 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 		}(position)
 	}
 
-	brokers := make([]repository.Broker, 0, numberOfBrokers)
-	brokersPhoneNumbers := make([][]repository.BrokerPhone, 0, numberOfBrokers)
-	brokersExternalLinks := make([][]repository.BrokerExternalLink, 0, numberOfBrokers)
+	brokers := make([]repository.CreateAllBrokersParams, 0, numberOfBrokers)
+	brokersPhoneNumbers := make([][]repository.CreateAllBrokerPhoneParams, 0, numberOfBrokers)
+	brokersExternalLinks := make([][]repository.CreateAllBrokerExternalLinkParams, 0, numberOfBrokers)
 
 	for i := 0; i < numberOfBrokers; i++ {
 		broker := <-brokerResults
@@ -177,7 +177,7 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 	return brokers, brokersPhoneNumbers, brokersExternalLinks
 }
 
-func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) (repository.Broker, []repository.BrokerPhone, []repository.BrokerExternalLink) {
+func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) (repository.CreateAllBrokersParams, []repository.CreateAllBrokerPhoneParams, []repository.CreateAllBrokerExternalLinkParams) {
 	brokerResponse := makeBrokerRequest(url, startPosition, aspNetCoreSession, arrAffinitySameSite)
 	brokerName := getBrokerName(brokerResponse)
 	brokerFirstName, brokerMiddleName, brokerLastName := parseBrokerName(brokerName)
@@ -186,11 +186,11 @@ func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffin
 	doc, err := html.Parse(strings.NewReader(brokerResponse.D.Result.Html))
 	if err != nil {
 		log.Printf("Error parsing HTML: %v", err)
-		return repository.Broker{}, nil, nil // or handle error appropriately
+		return repository.CreateAllBrokersParams{}, nil, nil // or handle error appropriately
 	}
 	doc = FindElementByTagName(doc, "article")
 
-	broker := repository.Broker{
+	broker := repository.CreateAllBrokersParams{
 		ID:                getBrokerID(doc),
 		FirstName:         brokerFirstName,
 		MiddleName:        brokerMiddleName,
@@ -337,9 +337,9 @@ func getBrokerPresentation(n *html.Node) *string {
 	return presentationValue
 }
 
-func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.BrokerPhone {
+func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.CreateAllBrokerPhoneParams {
 	aTags := FindElementsByAttribute(n, "itemprop", "telephone")
-	var phoneNumberArr []repository.BrokerPhone
+	var phoneNumberArr []repository.CreateAllBrokerPhoneParams
 	currentTime := time.Now()
 
 	for _, a := range aTags {
@@ -353,7 +353,7 @@ func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.BrokerPhon
 			phoneNumberType = "Courtier"
 		}
 
-		brokerPhone := repository.BrokerPhone{
+		brokerPhone := repository.CreateAllBrokerPhoneParams{
 			ID:        uuid.New(),
 			BrokerID:  brokerID,
 			Number:    phoneNumber,
@@ -366,7 +366,7 @@ func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.BrokerPhon
 	return phoneNumberArr
 }
 
-func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.BrokerExternalLink {
+func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.CreateAllBrokerExternalLinkParams {
 	externalLinks := FindElementsByAttribute(n, "class", "btn btn-outline-icon-only")
 	agencyExternalLink := FindElementByClassNode(n, "a", "btn btn-outline-icon-only broker-info-office-info-icon")
 	if agencyExternalLink != nil {
@@ -374,7 +374,7 @@ func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.BrokerExt
 	}
 
 	currentTime := time.Now()
-	var brokerExternalLinks []repository.BrokerExternalLink
+	var brokerExternalLinks []repository.CreateAllBrokerExternalLinkParams
 
 	for _, externalLink := range externalLinks {
 		externalLinkTitle := FindElementAttribute(externalLink, "a", "target", "_blank", "title")
@@ -406,7 +406,7 @@ func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.BrokerExt
 
 		externalLinkHref := FindElementAttribute(externalLink, "a", "target", "_blank", "href")
 
-		brokerExternalLink := repository.BrokerExternalLink{
+		brokerExternalLink := repository.CreateAllBrokerExternalLinkParams{
 			ID:        uuid.New(),
 			BrokerID:  brokerID,
 			Type:      brokerLinkType,
@@ -433,54 +433,29 @@ func flattenArray[T any](nested [][]T) []T {
 	return flat
 }
 
-func (s *Server) uploadBrokersToDB(brokers []repository.Broker, brokersPhoneNumbers [][]repository.BrokerPhone, brokersExternalLinks [][]repository.BrokerExternalLink) {
+func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, brokersPhoneNumbers [][]repository.CreateAllBrokerPhoneParams, brokersExternalLinks [][]repository.CreateAllBrokerExternalLinkParams) {
 	ctx := context.Background()
 
 	s.queries.DeleteAllBrokers(ctx)
 	SendNotification("Process Complete", "All brokers deleted.")
 
-	for _, broker := range brokers {
-		id, err := s.queries.CreateBroker(ctx, repository.CreateBrokerParams(broker))
-		if err != nil {
-			log.Printf("Failed to insert broker")
-			log.Println("Error: " + err.Error())
-		} else {
-			fmt.Printf("Successfully inserted broker: %d\n", id)
-		}
+	_, brokerErr := s.queries.CreateAllBrokers(ctx, brokers)
+	if brokerErr != nil {
+		log.Printf("Failed to insert brokers")
+		log.Println("Error: " + brokerErr.Error())
 	}
 
 	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
-	for _, brokerPhoneNumber := range flatBrokersPhoneNumbers {
-		brokerPhoneNumberParams := repository.CreateBrokerPhoneParams{
-			BrokerID:  brokerPhoneNumber.BrokerID,
-			Type:      brokerPhoneNumber.Type,
-			Number:    brokerPhoneNumber.Number,
-			CreatedAt: brokerPhoneNumber.CreatedAt,
-		}
-
-		id, err := s.queries.CreateBrokerPhone(ctx, brokerPhoneNumberParams)
-		if err != nil {
-			log.Printf("Failed to insert broker phone number: %s. With Id: %d", brokerPhoneNumberParams.Number, brokerPhoneNumberParams.BrokerID)
-			log.Println("Error: " + err.Error())
-		}
-		fmt.Printf("Successfully inserted broker phone: %d\n", id)
+	_, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
+	if phoneErr != nil {
+		log.Printf("Failed to insert broker phone numbers")
+		log.Println("Error: " + phoneErr.Error())
 	}
 
 	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
-	for _, brokerExternalLink := range flatBrokersExternalLinks {
-		brokerExternalLinkParams := repository.CreateBrokerExternalLinkParams{
-			BrokerID:  brokerExternalLink.BrokerID,
-			Type:      brokerExternalLink.Type,
-			Link:      brokerExternalLink.Link,
-			CreatedAt: brokerExternalLink.CreatedAt,
-		}
-
-		id, err := s.queries.CreateBrokerExternalLink(ctx, brokerExternalLinkParams)
-		if err != nil {
-			log.Printf("Failed to insert broker link: %s. With Id: %d", brokerExternalLinkParams.Link, brokerExternalLinkParams.BrokerID)
-			log.Println("Error: " + err.Error())
-		}
-
-		fmt.Printf("Successfully inserted broker external link: %d\n", id)
+	_, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
+	if linkErr != nil {
+		log.Printf("Failed to insert broker phone numbers")
+		log.Println("Error: " + linkErr.Error())
 	}
 }

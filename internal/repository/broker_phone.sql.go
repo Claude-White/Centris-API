@@ -12,6 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateAllBrokerPhoneParams struct {
+	ID        uuid.UUID  `json:"id"`
+	BrokerID  int64      `json:"broker_id"`
+	Type      string     `json:"type"`
+	Number    string     `json:"number"`
+	CreatedAt *time.Time `json:"created_at"`
+}
+
 const createBrokerPhone = `-- name: CreateBrokerPhone :one
 INSERT INTO broker_phone (id, broker_id, type, number, created_at)
 values (uuid_generate_v4(), $1, $2, $3, $4)
