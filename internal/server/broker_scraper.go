@@ -440,30 +440,13 @@ func (s *Server) uploadBrokersToDB(brokers []repository.Broker, brokersPhoneNumb
 	SendNotification("Process Complete", "All brokers deleted.")
 
 	for _, broker := range brokers {
-		brokerParams := repository.CreateBrokerParams{
-			ID:                broker.ID,
-			FirstName:         broker.FirstName,
-			LastName:          broker.LastName,
-			MiddleName:        broker.MiddleName,
-			Title:             broker.Title,
-			ProfilePhoto:      broker.ProfilePhoto,
-			ComplementaryInfo: broker.ComplementaryInfo,
-			ServedAreas:       broker.ServedAreas,
-			Presentation:      broker.Presentation,
-			CorporationName:   broker.CorporationName,
-			AgencyName:        broker.AgencyName,
-			AgencyAddress:     broker.AgencyAddress,
-			AgencyLogo:        broker.AgencyLogo,
-			CreatedAt:         broker.CreatedAt,
-			UpdatedAt:         broker.UpdatedAt,
-		}
-
-		id, err := s.queries.CreateBroker(ctx, brokerParams)
+		id, err := s.queries.CreateBroker(ctx, repository.CreateBrokerParams(broker))
 		if err != nil {
-			log.Printf("Failed to insert broker id: %d", brokerParams.ID)
+			log.Printf("Failed to insert broker")
 			log.Println("Error: " + err.Error())
+		} else {
+			fmt.Printf("Successfully inserted broker: %d\n", id)
 		}
-		fmt.Printf("Successfully inserted broker: %d\n", id)
 	}
 
 	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
