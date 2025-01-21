@@ -4,13 +4,15 @@ LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetProperty :one
 SELECT * FROM property 
-WHERE property.id = $1
+WHERE property.id = @mls::int
 LIMIT 1;
 
--- name: GetPropertyByCoordinates :one
+-- name: GetPropertyByCoordinates :many
 SELECT * FROM property
-WHERE property.longitude = $1 AND property.latitude = $2
-LIMIT 1;
+WHERE
+    ABS(property.longitude - $1) < 0.000001 
+    AND ABS(property.latitude - $2) < 0.000001
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: GetAllBrokerProperties :many
 SELECT property.* FROM property
@@ -43,11 +45,12 @@ SELECT *
 FROM property
 WHERE (
     6371 * acos(
-        cos(radians(@latitude::float32)) * cos(radians(property.latitude)) *
-        cos(radians(property.longitude) - radians(@longitude::float32)) +
-        sin(radians(@latitude::float32)) * sin(radians(latitude))
+        cos(radians(@latitude::numeric)) * cos(radians(property.latitude)) *
+        cos(radians(property.longitude) - radians(@longitude::numeric)) +
+        sin(radians(@latitude::numeric)) * sin(radians(property.latitude))
     )
-) <= @radius::float32;
+) <= @radius::numeric
+LIMIT @number_of_items::int OFFSET @start_position::int;
 
 -- name: CreateProperty :one
 INSERT INTO property (id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, longitude, latitude)

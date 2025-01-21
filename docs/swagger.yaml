@@ -94,12 +94,29 @@ definitions:
       start_position:
         type: integer
     type: object
+  repository.GetAllRadiusPropertiesParams:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+      number_of_items:
+        type: integer
+      radius:
+        type: number
+      start_position:
+        type: integer
+    type: object
   repository.GetPropertyByCoordinatesParams:
     properties:
       latitude:
         type: number
       longitude:
         type: number
+      number_of_items:
+        type: integer
+      start_position:
+        type: integer
     type: object
   repository.Property:
     properties:
@@ -380,7 +397,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Retrieves a list of properties for a specific radius with pagination
+      description: Retrieves a list of properties for a specific city with pagination
       parameters:
       - description: Pagination parameters
         in: body
@@ -398,21 +415,21 @@ paths:
               $ref: '#/definitions/repository.Property'
             type: array
         "400":
-          description: Invalid radius or request body
+          description: Invalid city name or request body
           schema:
             type: string
         "404":
-          description: Properties not found
+          description: City properties not found
           schema:
             type: string
         "500":
           description: Internal server error
           schema:
             type: string
-      summary: Get all properties by radius
+      summary: Get all properties by city
       tags:
       - Properties
-  /properties/radius:
+  /properties/coordinates:
     post:
       consumes:
       - application/json
@@ -444,6 +461,42 @@ paths:
           schema:
             type: string
       summary: Get a property by coordinates
+      tags:
+      - Properties
+  /properties/radius:
+    post:
+      consumes:
+      - application/json
+      description: Retrieves a list of properties for a specific radius with pagination
+      parameters:
+      - description: Pagination parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/repository.GetAllRadiusPropertiesParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/repository.Property'
+            type: array
+        "400":
+          description: Invalid radius or request body
+          schema:
+            type: string
+        "404":
+          description: Properties not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get all properties by radius
       tags:
       - Properties
 swagger: "2.0"
