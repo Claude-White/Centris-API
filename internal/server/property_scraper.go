@@ -600,8 +600,8 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 			Latitude:       property.Latitude,
 			Longitude:      property.Longitude,
 		}
-		fmt.Println("Property" + string(propertyParams.ID) + "Added")
 		allProperties = append(allProperties, propertyParams)
+		fmt.Println("Property" + string(propertyParams.ID) + "Added")
 	}
 	count, err := s.queries.CreateAllProperties(ctx, allProperties)
 	if err != nil {
@@ -616,6 +616,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	allPropertiesExpenses := []repository.CreateAllPropertiesExpensesParams{}
 	for _, propertyExpense := range flatPropertiesExpenses {
 		allPropertiesExpenses = append(allPropertiesExpenses, repository.CreateAllPropertiesExpensesParams(propertyExpense))
+		fmt.Println("Property expense" + propertyExpense.ID.String() + "Added")
 	}
 	count, err = s.queries.CreateAllPropertiesExpenses(ctx, allPropertiesExpenses)
 	if err != nil {
@@ -630,6 +631,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	allPropertiesFeatures := make([]repository.CreateAllPropertiesFeaturesParams, 0, len(flatPropertiesFeatures))
 	for _, propertyFeature := range flatPropertiesFeatures {
 		allPropertiesFeatures = append(allPropertiesFeatures, repository.CreateAllPropertiesFeaturesParams(propertyFeature))
+		fmt.Println("Property feature" + propertyFeature.ID.String() + "Added")
 	}
 	count, err = s.queries.CreateAllPropertiesFeatures(ctx, allPropertiesFeatures)
 	if err != nil {
@@ -644,6 +646,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	allPropertiesPhotos := []repository.CreateAllPropertiesPhotosParams{}
 	for _, propertyPhoto := range flatPropertiesPhotos {
 		allPropertiesPhotos = append(allPropertiesPhotos, repository.CreateAllPropertiesPhotosParams(propertyPhoto))
+		fmt.Println("Property photo" + propertyPhoto.ID.String() + "Added")
 	}
 	count, err = s.queries.CreateAllPropertiesPhotos(ctx, allPropertiesPhotos)
 	if err != nil {
@@ -658,6 +661,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	allBrokersProperties := []repository.CreateAllBrokersPropertiesParams{}
 	for _, brokerProperty := range flatBrokerProperties {
 		allBrokersProperties = append(allBrokersProperties, repository.CreateAllBrokersPropertiesParams(brokerProperty))
+		fmt.Println("Broker property" + brokerProperty.ID.String() + "Added")
 	}
 	count, err = s.queries.CreateAllBrokersProperties(ctx, allBrokersProperties)
 	if err != nil {
