@@ -9,6 +9,124 @@ import (
 	"context"
 )
 
+// iteratorForCreateAllBrokerExternalLink implements pgx.CopyFromSource.
+type iteratorForCreateAllBrokerExternalLink struct {
+	rows                 []CreateAllBrokerExternalLinkParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateAllBrokerExternalLink) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateAllBrokerExternalLink) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].ID,
+		r.rows[0].BrokerID,
+		r.rows[0].Type,
+		r.rows[0].Link,
+		r.rows[0].CreatedAt,
+	}, nil
+}
+
+func (r iteratorForCreateAllBrokerExternalLink) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateAllBrokerExternalLink(ctx context.Context, arg []CreateAllBrokerExternalLinkParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"broker_external_links"}, []string{"id", "broker_id", "type", "link", "created_at"}, &iteratorForCreateAllBrokerExternalLink{rows: arg})
+}
+
+// iteratorForCreateAllBrokerPhone implements pgx.CopyFromSource.
+type iteratorForCreateAllBrokerPhone struct {
+	rows                 []CreateAllBrokerPhoneParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateAllBrokerPhone) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateAllBrokerPhone) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].ID,
+		r.rows[0].BrokerID,
+		r.rows[0].Type,
+		r.rows[0].Number,
+		r.rows[0].CreatedAt,
+	}, nil
+}
+
+func (r iteratorForCreateAllBrokerPhone) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateAllBrokerPhone(ctx context.Context, arg []CreateAllBrokerPhoneParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"broker_phone"}, []string{"id", "broker_id", "type", "number", "created_at"}, &iteratorForCreateAllBrokerPhone{rows: arg})
+}
+
+// iteratorForCreateAllBrokers implements pgx.CopyFromSource.
+type iteratorForCreateAllBrokers struct {
+	rows                 []CreateAllBrokersParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateAllBrokers) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateAllBrokers) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].ID,
+		r.rows[0].FirstName,
+		r.rows[0].MiddleName,
+		r.rows[0].LastName,
+		r.rows[0].Title,
+		r.rows[0].ProfilePhoto,
+		r.rows[0].ComplementaryInfo,
+		r.rows[0].ServedAreas,
+		r.rows[0].Presentation,
+		r.rows[0].CorporationName,
+		r.rows[0].AgencyName,
+		r.rows[0].AgencyAddress,
+		r.rows[0].AgencyLogo,
+		r.rows[0].CreatedAt,
+		r.rows[0].UpdatedAt,
+	}, nil
+}
+
+func (r iteratorForCreateAllBrokers) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateAllBrokers(ctx context.Context, arg []CreateAllBrokersParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"broker"}, []string{"id", "first_name", "middle_name", "last_name", "title", "profile_photo", "complementary_info", "served_areas", "presentation", "corporation_name", "agency_name", "agency_address", "agency_logo", "created_at", "updated_at"}, &iteratorForCreateAllBrokers{rows: arg})
+}
+
 // iteratorForCreateAllBrokersProperties implements pgx.CopyFromSource.
 type iteratorForCreateAllBrokersProperties struct {
 	rows                 []CreateAllBrokersPropertiesParams

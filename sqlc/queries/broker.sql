@@ -21,5 +21,9 @@ INSERT INTO broker (id, first_name, middle_name, last_name, title, profile_photo
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 RETURNING id;
 
+-- name: CreateAllBrokers :copyfrom
+INSERT INTO broker (id, first_name, middle_name, last_name, title, profile_photo, complementary_info, served_areas, presentation, corporation_name, agency_name, agency_address, agency_logo, created_at, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
+
 -- name: DeleteAllBrokers :exec
 DELETE FROM broker;
