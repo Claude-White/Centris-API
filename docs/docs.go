@@ -330,7 +330,7 @@ const docTemplate = `{
         },
         "/properties/city": {
             "post": {
-                "description": "Retrieves a list of properties for a specific radius with pagination",
+                "description": "Retrieves a list of properties for a specific city with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -340,7 +340,7 @@ const docTemplate = `{
                 "tags": [
                     "Properties"
                 ],
-                "summary": "Get all properties by radius",
+                "summary": "Get all properties by city",
                 "parameters": [
                     {
                         "description": "Pagination parameters",
@@ -363,13 +363,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid radius or request body",
+                        "description": "Invalid city name or request body",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "404": {
-                        "description": "Properties not found",
+                        "description": "City properties not found",
                         "schema": {
                             "type": "string"
                         }
@@ -383,7 +383,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/properties/radius": {
+        "/properties/coordinates": {
             "post": {
                 "description": "Retrieves a property based on latitude and longitude",
                 "consumes": [
@@ -422,6 +422,61 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Property not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/properties/radius": {
+            "post": {
+                "description": "Retrieves a list of properties for a specific radius with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Properties"
+                ],
+                "summary": "Get all properties by radius",
+                "parameters": [
+                    {
+                        "description": "Pagination parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/repository.GetAllRadiusPropertiesParams"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/repository.Property"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid radius or request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Properties not found",
                         "schema": {
                             "type": "string"
                         }
@@ -633,6 +688,26 @@ const docTemplate = `{
                 }
             }
         },
+        "repository.GetAllRadiusPropertiesParams": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "radius": {
+                    "type": "number"
+                },
+                "start_position": {
+                    "type": "integer"
+                }
+            }
+        },
         "repository.GetPropertyByCoordinatesParams": {
             "type": "object",
             "properties": {
@@ -641,6 +716,12 @@ const docTemplate = `{
                 },
                 "longitude": {
                     "type": "number"
+                },
+                "number_of_items": {
+                    "type": "integer"
+                },
+                "start_position": {
+                    "type": "integer"
                 }
             }
         },

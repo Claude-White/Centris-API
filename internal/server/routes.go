@@ -13,17 +13,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-type RequestBody struct {
-	StartPosition int32 `json:"start_position"`
-	NumberOfItems int32 `json:"number_of_items"`
-}
-
-type GeoFilterCoordinates struct {
-	Longitude float32 `json:"longitude"`
-	Latitude  float32 `json:"latitude"`
-	Radius    float32 `json:"radius"`
-}
-
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
@@ -33,10 +22,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("GET /properties/{mls}", s.GetProperty)
 	mux.HandleFunc("POST /properties/coordinates", s.GetPropertyByCoordinates)
 	mux.HandleFunc("POST /properties", s.GetAllProperties)
-	mux.HandleFunc("POST /properties/broker/{brokerId}", s.GetAllBrokerProperties)
-	mux.HandleFunc("POST /properties/agency/{agencyName}", s.GetAllAgencyProperties)
-	mux.HandleFunc("POST /properties/city/{cityName}", s.GetAllCityProperties)
-	mux.HandleFunc("POST /properties/geo-filter/{radius}", s.GetAllRadiusProperties)
+	mux.HandleFunc("POST /properties/broker", s.GetAllBrokerProperties)
+	mux.HandleFunc("POST /properties/agency", s.GetAllAgencyProperties)
+	mux.HandleFunc("POST /properties/city", s.GetAllCityProperties)
+	mux.HandleFunc("POST /properties/radius", s.GetAllRadiusProperties)
 
 	// Broker enpoints
 	mux.HandleFunc("GET /brokers/{brokerId}", s.GetBroker)
@@ -95,13 +84,13 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 //	@Router			/properties/{mls} [get]
 func (s *Server) GetProperty(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	mls, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("mls")), 10, 64)
+	mls, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("mls")), 10, 32)
 	if err != nil {
 		http.Error(w, "Invalid MLS number", http.StatusBadRequest)
 		return
 	}
 
-	property, err := s.queries.GetProperty(ctx, mls)
+	property, err := s.queries.GetProperty(ctx, int32(mls))
 	if err != nil {
 		http.Error(w, "Property not found", http.StatusNotFound)
 		return
@@ -176,7 +165,7 @@ func (s *Server) GetAllProperties(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400		{object}	string	"Invalid request body"
 //	@Failure		404		{object}	string	"Property not found"
 //	@Failure		500		{object}	string	"Internal server error"
-//	@Router			/properties/radius [post]
+//	@Router			/properties/coordinates [post]
 func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	body, err := io.ReadAll(r.Body)
@@ -193,16 +182,16 @@ func (s *Server) GetPropertyByCoordinates(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	property, err := s.queries.GetPropertyByCoordinates(ctx, req)
+	properties, err := s.queries.GetPropertyByCoordinates(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get properties: %v", err)
 		http.Error(w, "Failed to get properties", http.StatusInternalServerError)
 	}
-	if property == (repository.Property{}) {
+	if len(properties) == 0 {
 		http.Error(w, "Property not found", http.StatusNotFound)
 	}
 
-	resp, err := json.Marshal(property)
+	resp, err := json.Marshal(properties)
 	if err != nil {
 		http.Error(w, "Failed to marshal property response", http.StatusInternalServerError)
 	}
@@ -243,11 +232,7 @@ func (s *Server) GetAllBrokerProperties(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	properties, err := s.queries.GetAllBrokerProperties(ctx, repository.GetAllBrokerPropertiesParams{
-		BrokerID:      req.BrokerID,
-		NumberOfItems: req.NumberOfItems,
-		StartPosition: req.StartPosition,
-	})
+	properties, err := s.queries.GetAllBrokerProperties(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get broker properties: %v", err)
 		http.Error(w, "Failed to get broker properties", http.StatusInternalServerError)
@@ -298,11 +283,7 @@ func (s *Server) GetAllAgencyProperties(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	properties, err := s.queries.GetAllAgencyProperties(ctx, repository.GetAllAgencyPropertiesParams{
-		AgencyName:    req.AgencyName,
-		NumberOfItems: req.NumberOfItems,
-		StartPosition: req.StartPosition,
-	})
+	properties, err := s.queries.GetAllAgencyProperties(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get agency properties: %v", err)
 		http.Error(w, "Failed to get agency properties", http.StatusInternalServerError)
@@ -353,11 +334,7 @@ func (s *Server) GetAllCategoryProperties(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	properties, err := s.queries.GetAllCategoryProperties(ctx, repository.GetAllCategoryPropertiesParams{
-		Category:      req.Category,
-		NumberOfItems: req.NumberOfItems,
-		StartPosition: req.StartPosition,
-	})
+	properties, err := s.queries.GetAllCategoryProperties(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get category properties: %v", err)
 		http.Error(w, "Failed to get category properties", http.StatusInternalServerError)
@@ -408,11 +385,7 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	properties, err := s.queries.GetAllCityProperties(ctx, repository.GetAllCityPropertiesParams{
-		CityName:      req.CityName,
-		NumberOfItems: req.NumberOfItems,
-		StartPosition: req.StartPosition,
-	})
+	properties, err := s.queries.GetAllCityProperties(ctx, req)
 	if err != nil {
 		http.Error(w, "Failed to get city properties", http.StatusInternalServerError)
 		return
@@ -442,12 +415,12 @@ func (s *Server) GetAllCityProperties(w http.ResponseWriter, r *http.Request) {
 //	@Tags			Properties
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		repository.GetAllCityPropertiesParams	true	"Pagination parameters"
+//	@Param			request	body		repository.GetAllRadiusPropertiesParams	true	"Pagination parameters"
 //	@Success		200		{array}		repository.Property
 //	@Failure		400		{object}	string	"Invalid radius or request body"
 //	@Failure		404		{object}	string	"Properties not found"
 //	@Failure		500		{object}	string	"Internal server error"
-//	@Router			/properties/city [post]
+//	@Router			/properties/radius [post]
 func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
@@ -465,11 +438,7 @@ func (s *Server) GetAllRadiusProperties(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	properties, err := s.queries.GetAllRadiusProperties(ctx, repository.GetAllRadiusPropertiesParams{
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
-		Radius:    req.Radius,
-	})
+	properties, err := s.queries.GetAllRadiusProperties(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get radius properties: %v", err)
 		http.Error(w, "Failed to get radius properties", http.StatusInternalServerError)

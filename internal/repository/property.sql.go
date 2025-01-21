@@ -318,21 +318,30 @@ SELECT id, title, category, address, city_name, price, description, bedroom_numb
 FROM property
 WHERE (
     6371 * acos(
-        cos(radians($1::float32)) * cos(radians(property.latitude)) *
-        cos(radians(property.longitude) - radians($2::float32)) +
-        sin(radians($1::float32)) * sin(radians(latitude))
+        cos(radians($1::numeric)) * cos(radians(property.latitude)) *
+        cos(radians(property.longitude) - radians($2::numeric)) +
+        sin(radians($1::numeric)) * sin(radians(property.latitude))
     )
-) <= $3::float32
+) <= $3::numeric
+LIMIT $5::int OFFSET $4::int
 `
 
 type GetAllRadiusPropertiesParams struct {
-	Latitude  interface{} `json:"latitude"`
-	Longitude interface{} `json:"longitude"`
-	Radius    interface{} `json:"radius"`
+	Latitude      float32 `json:"latitude"`
+	Longitude     float32 `json:"longitude"`
+	Radius        float32 `json:"radius"`
+	StartPosition int32   `json:"start_position"`
+	NumberOfItems int32   `json:"number_of_items"`
 }
 
 func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPropertiesParams) ([]Property, error) {
-	rows, err := q.db.Query(ctx, getAllRadiusProperties, arg.Latitude, arg.Longitude, arg.Radius)
+	rows, err := q.db.Query(ctx, getAllRadiusProperties,
+		arg.Latitude,
+		arg.Longitude,
+		arg.Radius,
+		arg.StartPosition,
+		arg.NumberOfItems,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -368,12 +377,12 @@ func (q *Queries) GetAllRadiusProperties(ctx context.Context, arg GetAllRadiusPr
 
 const getProperty = `-- name: GetProperty :one
 SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property 
-WHERE property.id = $1
+WHERE property.id = $1::int
 LIMIT 1
 `
 
-func (q *Queries) GetProperty(ctx context.Context, id int64) (Property, error) {
-	row := q.db.QueryRow(ctx, getProperty, id)
+func (q *Queries) GetProperty(ctx context.Context, mls int32) (Property, error) {
+	row := q.db.QueryRow(ctx, getProperty, mls)
 	var i Property
 	err := row.Scan(
 		&i.ID,
@@ -394,35 +403,57 @@ func (q *Queries) GetProperty(ctx context.Context, id int64) (Property, error) {
 	return i, err
 }
 
-const getPropertyByCoordinates = `-- name: GetPropertyByCoordinates :one
+const getPropertyByCoordinates = `-- name: GetPropertyByCoordinates :many
 SELECT id, title, category, address, city_name, price, description, bedroom_number, room_number, bathroom_number, latitude, longitude, created_at, updated_at FROM property
-WHERE property.longitude = $1 AND property.latitude = $2
-LIMIT 1
+WHERE
+    ABS(property.longitude - $1) < 0.000001 
+    AND ABS(property.latitude - $2) < 0.000001
+LIMIT $4::int OFFSET $3::int
 `
 
 type GetPropertyByCoordinatesParams struct {
-	Longitude float32 `json:"longitude"`
-	Latitude  float32 `json:"latitude"`
+	Longitude     float32 `json:"longitude"`
+	Latitude      float32 `json:"latitude"`
+	StartPosition int32   `json:"start_position"`
+	NumberOfItems int32   `json:"number_of_items"`
 }
 
-func (q *Queries) GetPropertyByCoordinates(ctx context.Context, arg GetPropertyByCoordinatesParams) (Property, error) {
-	row := q.db.QueryRow(ctx, getPropertyByCoordinates, arg.Longitude, arg.Latitude)
-	var i Property
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Category,
-		&i.Address,
-		&i.CityName,
-		&i.Price,
-		&i.Description,
-		&i.BedroomNumber,
-		&i.RoomNumber,
-		&i.BathroomNumber,
-		&i.Latitude,
-		&i.Longitude,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+func (q *Queries) GetPropertyByCoordinates(ctx context.Context, arg GetPropertyByCoordinatesParams) ([]Property, error) {
+	rows, err := q.db.Query(ctx, getPropertyByCoordinates,
+		arg.Longitude,
+		arg.Latitude,
+		arg.StartPosition,
+		arg.NumberOfItems,
 	)
-	return i, err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Property
+	for rows.Next() {
+		var i Property
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Category,
+			&i.Address,
+			&i.CityName,
+			&i.Price,
+			&i.Description,
+			&i.BedroomNumber,
+			&i.RoomNumber,
+			&i.BathroomNumber,
+			&i.Latitude,
+			&i.Longitude,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
