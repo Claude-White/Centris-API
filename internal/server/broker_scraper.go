@@ -439,23 +439,26 @@ func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, 
 	s.queries.DeleteAllBrokers(ctx)
 	SendNotification("Process Complete", "All brokers deleted.")
 
-	_, brokerErr := s.queries.CreateAllBrokers(ctx, brokers)
+	brokerNum, brokerErr := s.queries.CreateAllBrokers(ctx, brokers)
 	if brokerErr != nil {
 		log.Printf("Failed to insert brokers")
 		log.Println("Error: " + brokerErr.Error())
 	}
 
 	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
-	_, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
+	phoneNum, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
 	if phoneErr != nil {
 		log.Printf("Failed to insert broker phone numbers")
 		log.Println("Error: " + phoneErr.Error())
 	}
 
 	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
-	_, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
+	linkNum, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
 	if linkErr != nil {
 		log.Printf("Failed to insert broker phone numbers")
 		log.Println("Error: " + linkErr.Error())
 	}
+
+	notifMessage := "Brokers: " + string(brokerNum) + " | Broker Phones: " + string(phoneNum) + " | Broker Links: " + string(linkNum)
+	SendNotification("Process Complete", notifMessage)
 }
