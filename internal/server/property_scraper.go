@@ -35,7 +35,7 @@ const (
 func RunPropertyScraper() {
 	properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties := getProperties()
 	log.Println("Finished scraping all property data")
-	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("SUPABASE_DB"))
+	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
 	}
