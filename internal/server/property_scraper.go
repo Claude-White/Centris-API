@@ -110,20 +110,18 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 			if link != "https://www.centris.ca" {
 				fmt.Println(link)
 				property := getProperty(doc)
-				if _, loaded := seenIDs.LoadOrStore(property.ID, true); loaded {
-					// If the ID already exists, skip appending
-					return
-				}
-				propertyExpenses := getPropertyExpenses(doc, property.ID)
-				propertyFeatures := getPropertyFeatures(doc, property.ID)
-				propertyPhotos := getPropertyPhotos(property.ID)
-				brokerProperties := getPropertyBroker(doc, property.ID)
+				if _, loaded := seenIDs.LoadOrStore(property.ID, true); !loaded {
+					propertyExpenses := getPropertyExpenses(doc, property.ID)
+					propertyFeatures := getPropertyFeatures(doc, property.ID)
+					propertyPhotos := getPropertyPhotos(property.ID)
+					brokerProperties := getPropertyBroker(doc, property.ID)
 
-				properties = append(properties, property)
-				propertiesExpenses = append(propertiesExpenses, propertyExpenses)
-				propertiesFeatures = append(propertiesFeatures, propertyFeatures)
-				propertiesPhotos = append(propertiesPhotos, propertyPhotos)
-				brokersProperties = append(brokersProperties, brokerProperties)
+					properties = append(properties, property)
+					propertiesExpenses = append(propertiesExpenses, propertyExpenses)
+					propertiesFeatures = append(propertiesFeatures, propertyFeatures)
+					propertiesPhotos = append(propertiesPhotos, propertyPhotos)
+					brokersProperties = append(brokersProperties, brokerProperties)
+				}
 			}
 
 		}(link)
