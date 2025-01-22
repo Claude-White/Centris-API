@@ -42,7 +42,7 @@ func RunPropertyScraper() {
 	dbServer.uploadPropertiesToDB(properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties)
 }
 
-func getProperties() ([]repository.Property, [][]repository.PropertyExpense, [][]repository.PropertyFeature, [][]repository.PropertyPhoto, [][]repository.BrokerProperty) {
+func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.CreateAllPropertiesExpensesParams, [][]repository.CreateAllPropertiesFeaturesParams, [][]repository.CreateAllPropertiesPhotosParams, [][]repository.CreateAllBrokersPropertiesParams) {
 	transport := &http.Transport{
 		MaxIdleConns:        maxIdleConns,
 		MaxIdleConnsPerHost: maxIdleConns,
@@ -59,11 +59,11 @@ func getProperties() ([]repository.Property, [][]repository.PropertyExpense, [][
 
 	links := GetAllProperties()
 
-	var properties []repository.Property
-	var propertiesExpenses [][]repository.PropertyExpense
-	var propertiesFeatures [][]repository.PropertyFeature
-	var propertiesPhotos [][]repository.PropertyPhoto
-	var brokersProperties [][]repository.BrokerProperty
+	var properties []repository.CreateAllPropertiesParams
+	var propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams
+	var propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams
+	var propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams
+	var brokersProperties [][]repository.CreateAllBrokersPropertiesParams
 
 	for _, link := range links {
 		wg.Add(1)
@@ -395,13 +395,10 @@ func getPropertyCityName(doc *html.Node) string {
 	return elementChildText
 }
 
-func getProperty(doc *html.Node) repository.Property {
-
-	currentTime := time.Now()
-
+func getProperty(doc *html.Node) repository.CreateAllPropertiesParams {
 	// propertyTransactionType := getPropertyTransactionType(pageTitle)
 
-	return repository.Property{
+	return repository.CreateAllPropertiesParams{
 		ID:             getPropertyId(doc),
 		Title:          getPropertyTitle(doc),
 		Category:       getPropertyCategory(getPropertyTitle(doc)),
@@ -414,16 +411,14 @@ func getProperty(doc *html.Node) repository.Property {
 		BathroomNumber: getPropertyRoomNumber(doc, "sdb"),
 		Latitude:       getPropertyCoordinate(doc, "latitude"),
 		Longitude:      getPropertyCoordinate(doc, "longitude"),
-		CreatedAt:      &currentTime,
-		UpdatedAt:      &currentTime,
 	}
 }
 
-func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.PropertyExpense {
+func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.CreateAllPropertiesExpensesParams {
 	currentTime := time.Now()
 	containerElement := FindElementByClassNode(doc, "div", "row financial-details-tables")
 	monthlyTables := FindElementsByAttribute(containerElement, "class", "financial-details-table financial-details-table-monthly")
-	var propertyExpenses []repository.PropertyExpense
+	var propertyExpenses []repository.CreateAllPropertiesExpensesParams
 
 	for _, element := range monthlyTables {
 		tableTitle := FindElementByClass(element, "th", "col pl-0 financial-details-table-title")
@@ -447,7 +442,7 @@ func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.Property
 			float32Value := float32(floatValue)
 			annualValue := (float32Value * 12)
 
-			propertyExpense := repository.PropertyExpense{
+			propertyExpense := repository.CreateAllPropertiesExpensesParams{
 				ID:           uuid.New(),
 				PropertyID:   propertyId,
 				Type:         expenseType,
@@ -464,16 +459,16 @@ func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.Property
 	return propertyExpenses
 }
 
-func getPropertyFeatures(doc *html.Node, propertyId int64) []repository.PropertyFeature {
+func getPropertyFeatures(doc *html.Node, propertyId int64) []repository.CreateAllPropertiesFeaturesParams {
 	elements := FindElementsByAttribute(doc, "class", "col-lg-3 col-sm-6 carac-container")
-	var propertyFeatures []repository.PropertyFeature
+	var propertyFeatures []repository.CreateAllPropertiesFeaturesParams
 
 	for _, element := range elements {
 		elementTitle := FindElementByClass(element, "div", "carac-title")
 		elementValue := FindElementByClass(element, "div", "carac-value")
 
 		if elementTitle != "" && elementValue != "" {
-			propertyFeature := repository.PropertyFeature{
+			propertyFeature := repository.CreateAllPropertiesFeaturesParams{
 				ID:         uuid.New(),
 				PropertyID: propertyId,
 				Title:      elementTitle,
@@ -486,10 +481,10 @@ func getPropertyFeatures(doc *html.Node, propertyId int64) []repository.Property
 	return propertyFeatures
 }
 
-func getPropertyPhotos(propertyId int64) []repository.PropertyPhoto {
+func getPropertyPhotos(propertyId int64) []repository.CreateAllPropertiesPhotosParams {
 	currentTime := time.Now()
 	url := "https://www.centris.ca/Property/PhotoViewerDataListing"
-	var propertyPhotos []repository.PropertyPhoto
+	var propertyPhotos []repository.CreateAllPropertiesPhotosParams
 
 	// Prepare request body
 	body := RequestBodyPhoto{
@@ -539,7 +534,7 @@ func getPropertyPhotos(propertyId int64) []repository.PropertyPhoto {
 		photoUrlQueryParameterIndex := strings.Index(photoUrl, "&t")
 		photoUrl = photoUrl[:photoUrlQueryParameterIndex] + "&t=pi&f=I"
 
-		propertyPhoto := repository.PropertyPhoto{
+		propertyPhoto := repository.CreateAllPropertiesPhotosParams{
 			ID:          uuid.New(),
 			PropertyID:  propertyId,
 			Link:        photoUrl,
@@ -553,10 +548,10 @@ func getPropertyPhotos(propertyId int64) []repository.PropertyPhoto {
 	return propertyPhotos
 }
 
-func getPropertyBroker(doc *html.Node, propertyId int64) []repository.BrokerProperty {
+func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllBrokersPropertiesParams {
 	currentTime := time.Now()
 	elements := FindElementsByAttribute(doc, "class", "broker-info legacy-reset  ")
-	brokerProperties := []repository.BrokerProperty{}
+	brokerProperties := []repository.CreateAllBrokersPropertiesParams{}
 
 	for _, element := range elements {
 		brokerIdString := FindElementAttribute(element, "div", "class", "broker-info legacy-reset  ", "data-broker-id")
@@ -565,7 +560,7 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.BrokerProp
 			continue
 		}
 
-		brokerProperty := repository.BrokerProperty{
+		brokerProperty := repository.CreateAllBrokersPropertiesParams{
 			ID:         uuid.New(),
 			BrokerID:   brokerId,
 			PropertyID: propertyId,
@@ -578,32 +573,13 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.BrokerProp
 	return brokerProperties
 }
 
-func (s *Server) uploadPropertiesToDB(properties []repository.Property, propertiesExpenses [][]repository.PropertyExpense, propertiesFeatures [][]repository.PropertyFeature, propertiesPhotos [][]repository.PropertyPhoto, brokersProperties [][]repository.BrokerProperty) {
+func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
 
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "All properties deleted.")
 
-	allProperties := []repository.CreateAllPropertiesParams{}
-	for _, property := range properties {
-		propertyParams := repository.CreateAllPropertiesParams{
-			ID:             property.ID,
-			Title:          property.Title,
-			Category:       property.Category,
-			Address:        property.Address,
-			CityName:       property.CityName,
-			Price:          property.Price,
-			Description:    property.Description,
-			BedroomNumber:  property.BedroomNumber,
-			RoomNumber:     property.RoomNumber,
-			BathroomNumber: property.BathroomNumber,
-			Latitude:       property.Latitude,
-			Longitude:      property.Longitude,
-		}
-		allProperties = append(allProperties, propertyParams)
-		fmt.Println("Property" + string(propertyParams.ID) + "Added")
-	}
-	count, err := s.queries.CreateAllProperties(ctx, allProperties)
+	count, err := s.queries.CreateAllProperties(ctx, properties)
 	if err != nil {
 		log.Printf("Failed to insert %d properties: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all properties:\n"+err.Error())
@@ -613,12 +589,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	}
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
-	allPropertiesExpenses := []repository.CreateAllPropertiesExpensesParams{}
-	for _, propertyExpense := range flatPropertiesExpenses {
-		allPropertiesExpenses = append(allPropertiesExpenses, repository.CreateAllPropertiesExpensesParams(propertyExpense))
-		fmt.Println("Property expense" + propertyExpense.ID.String() + "Added")
-	}
-	count, err = s.queries.CreateAllPropertiesExpenses(ctx, allPropertiesExpenses)
+	count, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
 	if err != nil {
 		log.Printf("Failed to insert %d property expenses: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all property expenses:\n"+err.Error())
@@ -628,12 +599,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	}
 
 	flatPropertiesFeatures := flattenArray(propertiesFeatures)
-	allPropertiesFeatures := make([]repository.CreateAllPropertiesFeaturesParams, 0, len(flatPropertiesFeatures))
-	for _, propertyFeature := range flatPropertiesFeatures {
-		allPropertiesFeatures = append(allPropertiesFeatures, repository.CreateAllPropertiesFeaturesParams(propertyFeature))
-		fmt.Println("Property feature" + propertyFeature.ID.String() + "Added")
-	}
-	count, err = s.queries.CreateAllPropertiesFeatures(ctx, allPropertiesFeatures)
+	count, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
 	if err != nil {
 		log.Printf("Failed to insert %d property features: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all property features:\n"+err.Error())
@@ -643,12 +609,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	}
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
-	allPropertiesPhotos := []repository.CreateAllPropertiesPhotosParams{}
-	for _, propertyPhoto := range flatPropertiesPhotos {
-		allPropertiesPhotos = append(allPropertiesPhotos, repository.CreateAllPropertiesPhotosParams(propertyPhoto))
-		fmt.Println("Property photo" + propertyPhoto.ID.String() + "Added")
-	}
-	count, err = s.queries.CreateAllPropertiesPhotos(ctx, allPropertiesPhotos)
+	count, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
 	if err != nil {
 		log.Printf("Failed to insert %d property photos: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all property photos:\n"+err.Error())
@@ -658,12 +619,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.Property, properti
 	}
 
 	flatBrokerProperties := flattenArray(brokersProperties)
-	allBrokersProperties := []repository.CreateAllBrokersPropertiesParams{}
-	for _, brokerProperty := range flatBrokerProperties {
-		allBrokersProperties = append(allBrokersProperties, repository.CreateAllBrokersPropertiesParams(brokerProperty))
-		fmt.Println("Broker property" + brokerProperty.ID.String() + "Added")
-	}
-	count, err = s.queries.CreateAllBrokersProperties(ctx, allBrokersProperties)
+	count, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
 	if err != nil {
 		log.Printf("Failed to insert %d broker properties: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all broker properties:\n"+err.Error())
