@@ -40,10 +40,11 @@ func RunPropertyScraper() {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
 	}
 	defer conn.Close(context.Background())
-
 	dbServer := CreateServer(conn)
 	dbServer.uploadPropertiesToDB(properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties)
 }
+
+// Test
 
 func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.CreateAllPropertiesExpensesParams, [][]repository.CreateAllPropertiesFeaturesParams, [][]repository.CreateAllPropertiesPhotosParams, [][]repository.CreateAllBrokersPropertiesParams) {
 	transport := &http.Transport{
