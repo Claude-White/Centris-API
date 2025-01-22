@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -18,11 +19,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/schollz/progressbar/v3"
 	"golang.org/x/net/html"
 	"golang.org/x/time/rate"
 )
 
-var limiter = rate.NewLimiter(rate.Every(5*time.Millisecond), 20) // 200 requests per second
+var limiter = rate.NewLimiter(rate.Limit(150), 20) // 200 requests per second
 
 const (
 	maxConcurrentRequests = 100 // Increased from 5
@@ -32,6 +34,7 @@ const (
 
 func RunPropertyScraper() {
 	properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties := getProperties()
+	log.Println("Finished scraping all property data")
 	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("SUPABASE_DB"))
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
@@ -44,21 +47,23 @@ func RunPropertyScraper() {
 
 func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.CreateAllPropertiesExpensesParams, [][]repository.CreateAllPropertiesFeaturesParams, [][]repository.CreateAllPropertiesPhotosParams, [][]repository.CreateAllBrokersPropertiesParams) {
 	transport := &http.Transport{
-		MaxIdleConns:        maxIdleConns,
-		MaxIdleConnsPerHost: maxIdleConns,
-		IdleConnTimeout:     90 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   5 * time.Second, // Connection timeout
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 5 * time.Second,
 	}
 
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   30 * time.Second,
+		Timeout:   0, // No global timeout
 	}
 
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 50)
 
 	links := GetAllProperties()
-
+	log.Println("Finished getting all property links")
 	var properties []repository.CreateAllPropertiesParams
 	var propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams
 	var propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams
@@ -77,27 +82,27 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 			// Wait for rate limiter
 			err := limiter.Wait(context.Background())
 			if err != nil {
-				log.Printf("Rate limiter error for %s: %v", url, err)
+				// log.Printf("Rate limiter error for %s: %v", url, err)
 				return
 			}
 
 			// Make the request
 			resp, err := client.Get(url)
 			if err != nil {
-				log.Printf("Error making request to %s: %v", url, err)
+				// log.Printf("Error making request to %s: %v", url, err)
 				return
 			}
 			defer resp.Body.Close()
 
 			if strings.Contains(resp.Request.URL.String(), "listingnotfound") {
-				fmt.Printf("Listing not found for URL: %s", url)
+				// fmt.Printf("Listing not found for URL: %s", url)
 				return
 			}
 
 			// Parse the HTML content
 			doc, err := html.Parse(io.NopCloser(resp.Body))
 			if err != nil {
-				log.Printf("Error parsing HTML for %s: %v", url, err)
+				// log.Printf("Error parsing HTML for %s: %v", url, err)
 				return
 			}
 
@@ -126,14 +131,16 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 func GetAllProperties() []string {
 	// Create a transport with connection pooling
 	transport := &http.Transport{
-		MaxIdleConns:        maxIdleConns,
-		MaxIdleConnsPerHost: maxIdleConns,
-		IdleConnTimeout:     90 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   5 * time.Second, // Connection timeout
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 5 * time.Second,
 	}
 
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   30 * time.Second, // Add timeout
+		Timeout:   0, // No global timeout
 	}
 
 	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl + PropertyMapUrl)
@@ -194,11 +201,19 @@ func getAllHouses(client *http.Client, pins []Marker, aspNetCoreSession string, 
 	var houseLinks []string
 	var mu sync.Mutex // Mutex for thread-safe append
 
+	// Calculate total expected properties
+	totalProperties := 0
+	for _, pin := range pins {
+		totalProperties += pin.PointsCount
+	}
+
+	// Create progress bar once
+	bar := progressbar.Default(int64(totalProperties))
+
 	// Use semaphore to limit concurrent goroutines
-	sem := make(chan struct{}, maxConcurrentRequests) // Limit to 5 concurrent requests
+	sem := make(chan struct{}, maxConcurrentRequests)
 
 	var wg sync.WaitGroup
-
 	for _, pin := range pins {
 		for i := 0; i < pin.PointsCount; i++ {
 			wg.Add(1)
@@ -217,10 +232,10 @@ func getAllHouses(client *http.Client, pins []Marker, aspNetCoreSession string, 
 				}
 
 				link := baseUrl + GetAllHouseInPin(client, aspNetCoreSession, arrAffinitySameSite, pin, idx)
-				fmt.Println(link)
 				if link != "" {
 					mu.Lock()
 					houseLinks = append(houseLinks, link)
+					bar.Add(1) // Just increment the bar
 					mu.Unlock()
 				}
 			}(pin, i)
@@ -260,7 +275,7 @@ func GetAllHouseInPin(client *http.Client, aspNetCoreSession string, arrAffinity
 	for i := 0; i < maxRetries; i++ {
 		resp, err := client.Do(pinReq)
 		if err != nil {
-			log.Printf("Error fetching markers (attempt %d/%d): %v\n", i+1, maxRetries, err)
+			// log.Printf("Error fetching markers (attempt %d/%d): %v\n", i+1, maxRetries, err)
 			if i < maxRetries-1 {
 				time.Sleep(time.Duration(1<<uint(i)) * time.Second)
 				continue
@@ -281,7 +296,7 @@ func GetAllHouseInPin(client *http.Client, aspNetCoreSession string, arrAffinity
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("Error reading response body: %v\n", err)
+			// log.Printf("Error reading response body: %v\n", err)
 			return ""
 		}
 
