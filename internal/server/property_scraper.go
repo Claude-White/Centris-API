@@ -70,7 +70,7 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 	var propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams
 	var propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams
 	var brokersProperties [][]repository.CreateAllBrokersPropertiesParams
-
+	seenIDs := sync.Map{}
 	for _, link := range links {
 		wg.Add(1)
 		go func(url string) {
@@ -110,6 +110,10 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 			if link != "https://www.centris.ca" {
 				fmt.Println(link)
 				property := getProperty(doc)
+				if _, loaded := seenIDs.LoadOrStore(property.ID, true); loaded {
+					// If the ID already exists, skip appending
+					return
+				}
 				propertyExpenses := getPropertyExpenses(doc, property.ID)
 				propertyFeatures := getPropertyFeatures(doc, property.ID)
 				propertyPhotos := getPropertyPhotos(property.ID)
