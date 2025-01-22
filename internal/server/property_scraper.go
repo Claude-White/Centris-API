@@ -594,7 +594,7 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
 
-	file, err := os.Create("data.json")
+	file, err := os.Create("properties.json")
 	if err != nil {
 		panic(err)
 	}
@@ -619,6 +619,17 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
+	file, err = os.Create("propertiesExpenses.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	encoder = json.NewEncoder(file)
+	encoder.SetIndent("", "  ") // Pretty-print JSON
+	if err := encoder.Encode(propertiesExpenses); err != nil {
+		panic(err)
+	}
 	count, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
 	if err != nil {
 		log.Printf("Failed to insert %d property expenses: %s", count, err)
@@ -629,6 +640,17 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatPropertiesFeatures := flattenArray(propertiesFeatures)
+	file, err = os.Create("propertiesFeatures.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	encoder = json.NewEncoder(file)
+	encoder.SetIndent("", "  ") // Pretty-print JSON
+	if err := encoder.Encode(propertiesFeatures); err != nil {
+		panic(err)
+	}
 	count, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
 	if err != nil {
 		log.Printf("Failed to insert %d property features: %s", count, err)
@@ -639,6 +661,17 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
+	file, err = os.Create("propertiesPhotos.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	encoder = json.NewEncoder(file)
+	encoder.SetIndent("", "  ") // Pretty-print JSON
+	if err := encoder.Encode(propertiesPhotos); err != nil {
+		panic(err)
+	}
 	count, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
 	if err != nil {
 		log.Printf("Failed to insert %d property photos: %s", count, err)
@@ -649,6 +682,17 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatBrokerProperties := flattenArray(brokersProperties)
+	file, err = os.Create("brokerProperties.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	encoder = json.NewEncoder(file)
+	encoder.SetIndent("", "  ") // Pretty-print JSON
+	if err := encoder.Encode(brokersProperties); err != nil {
+		panic(err)
+	}
 	count, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
 	if err != nil {
 		log.Printf("Failed to insert %d broker properties: %s", count, err)
