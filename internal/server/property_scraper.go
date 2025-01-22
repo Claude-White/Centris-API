@@ -592,6 +592,18 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
 
+	file, err := os.Create("data.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ") // Pretty-print JSON
+	if err := encoder.Encode(properties); err != nil {
+		panic(err)
+	}
+
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "All properties deleted.")
 
