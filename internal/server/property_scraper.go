@@ -60,6 +60,12 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 		Timeout:   0, // No global timeout
 	}
 
+	file, err := os.Create("Copies.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 50)
 
@@ -110,7 +116,11 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 			if link != "https://www.centris.ca" {
 				fmt.Println(link)
 				property := getProperty(doc)
+
 				if _, loaded := seenIDs.LoadOrStore(property.ID, true); !loaded {
+					if property.ID == 25034341 || property.ID == 12331491 {
+						fmt.Printf("This is crap")
+					}
 					propertyExpenses := getPropertyExpenses(doc, property.ID)
 					propertyFeatures := getPropertyFeatures(doc, property.ID)
 					propertyPhotos := getPropertyPhotos(property.ID)
@@ -121,7 +131,20 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 					propertiesFeatures = append(propertiesFeatures, propertyFeatures)
 					propertiesPhotos = append(propertiesPhotos, propertyPhotos)
 					brokersProperties = append(brokersProperties, brokerProperties)
+				} else {
+					file, err := os.OpenFile("crap-property.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						panic(err)
+					}
+					defer file.Close()
+
+					encoder := json.NewEncoder(file)
+					encoder.SetIndent("", "  ") // Pretty-print JSON
+					if err := encoder.Encode(property); err != nil {
+						panic(err)
+					}
 				}
+
 			}
 
 		}(link)
@@ -627,7 +650,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 
 	encoder = json.NewEncoder(file)
 	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(propertiesExpenses); err != nil {
+	if err := encoder.Encode(flatPropertiesExpenses); err != nil {
 		panic(err)
 	}
 	count, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
@@ -648,7 +671,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 
 	encoder = json.NewEncoder(file)
 	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(propertiesFeatures); err != nil {
+	if err := encoder.Encode(flatPropertiesFeatures); err != nil {
 		panic(err)
 	}
 	count, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
@@ -669,7 +692,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 
 	encoder = json.NewEncoder(file)
 	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(propertiesPhotos); err != nil {
+	if err := encoder.Encode(flatPropertiesPhotos); err != nil {
 		panic(err)
 	}
 	count, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
@@ -690,7 +713,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 
 	encoder = json.NewEncoder(file)
 	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(brokersProperties); err != nil {
+	if err := encoder.Encode(flatBrokerProperties); err != nil {
 		panic(err)
 	}
 	count, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
