@@ -118,9 +118,9 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 				property := getProperty(doc)
 
 				if _, loaded := seenIDs.LoadOrStore(property.ID, true); !loaded {
-					if property.ID == 25034341 || property.ID == 12331491 {
-						fmt.Printf("This is crap")
-					}
+					// if property.ID == 25034341 || property.ID == 12331491 {
+					// 	fmt.Printf("This is crap")
+					// }
 					propertyExpenses := getPropertyExpenses(doc, property.ID)
 					propertyFeatures := getPropertyFeatures(doc, property.ID)
 					propertyPhotos := getPropertyPhotos(property.ID)
@@ -178,7 +178,7 @@ func GetAllProperties() []string {
 
 func getAllPins(client *http.Client, aspNetCoreSession string, arrAffinitySameSite string) []Marker {
 	bodyData := InputData{
-		ZoomLevel: 11,
+		ZoomLevel: 18,
 		MapBounds: MapBounds{
 			NorthEast: Coordinate{
 				Lat: 51.41553513240069,
