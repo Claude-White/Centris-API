@@ -71,12 +71,16 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 
 	links := GetAllProperties()
 	log.Println("Finished getting all property links")
-	var properties []repository.CreateAllPropertiesParams
-	var propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams
-	var propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams
-	var propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams
-	var brokersProperties [][]repository.CreateAllBrokersPropertiesParams
-	seenIDs := sync.Map{}
+	// Shared resources (declare sync.Mutex here)
+	var (
+		properties         []repository.CreateAllPropertiesParams
+		propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams
+		propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams
+		propertiesPhotos   [][]repository.CreateAllPropertiesPhotosParams
+		brokersProperties  [][]repository.CreateAllBrokersPropertiesParams
+		mutex              sync.Mutex // Declare mutex here
+		seenIDs            sync.Map
+	)
 	for _, link := range links {
 		wg.Add(1)
 		go func(url string) {
@@ -118,33 +122,19 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 				property := getProperty(doc)
 
 				if _, loaded := seenIDs.LoadOrStore(property.ID, true); !loaded {
-					// if property.ID == 25034341 || property.ID == 12331491 {
-					// 	fmt.Printf("This is crap")
-					// }
 					propertyExpenses := getPropertyExpenses(doc, property.ID)
 					propertyFeatures := getPropertyFeatures(doc, property.ID)
 					propertyPhotos := getPropertyPhotos(property.ID)
 					brokerProperties := getPropertyBroker(doc, property.ID)
 
+					mutex.Lock()
 					properties = append(properties, property)
 					propertiesExpenses = append(propertiesExpenses, propertyExpenses)
 					propertiesFeatures = append(propertiesFeatures, propertyFeatures)
 					propertiesPhotos = append(propertiesPhotos, propertyPhotos)
 					brokersProperties = append(brokersProperties, brokerProperties)
-				} else {
-					file, err := os.OpenFile("crap-property.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-					if err != nil {
-						panic(err)
-					}
-					defer file.Close()
-
-					encoder := json.NewEncoder(file)
-					encoder.SetIndent("", "  ") // Pretty-print JSON
-					if err := encoder.Encode(property); err != nil {
-						panic(err)
-					}
+					mutex.Unlock()
 				}
-
 			}
 
 		}(link)
