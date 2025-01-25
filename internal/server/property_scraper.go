@@ -632,13 +632,17 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "All properties deleted.")
 
+	semaphore := make(chan struct{}, 50)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
 	for _, property := range properties {
 		wg.Add(1)
+		semaphore <- struct{}{} // Acquire semaphore slot
+
 		go func(prop repository.CreateAllPropertiesParams) {
 			defer wg.Done()
+			defer func() { <-semaphore }() // Release semaphore slot
 
 			id, err := s.queries.CreateProperty(ctx, repository.CreatePropertyParams(prop))
 
