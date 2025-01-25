@@ -632,14 +632,28 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "All properties deleted.")
 
-	count, err := s.queries.CreateAllProperties(ctx, properties)
-	if err != nil {
-		log.Printf("Failed to insert %d properties: %s", count, err)
-		SendNotification("Failed to Insert", "An error occured while inserting all properties:\n"+err.Error())
-	} else {
-		fmt.Printf("Successfully inserted %d properties\n", count)
-		SendNotification("Process Complete", "All properties successfully inserted.")
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	for _, property := range properties {
+		wg.Add(1)
+		go func(prop repository.CreateAllPropertiesParams) {
+			defer wg.Done()
+
+			id, err := s.queries.CreateProperty(ctx, repository.CreatePropertyParams(prop))
+
+			mu.Lock()
+			if err != nil {
+				log.Printf("Failed to insert property %d: %s", prop.ID, err)
+			} else {
+				log.Printf("Property %d successfully inserted", id)
+			}
+			mu.Unlock()
+		}(property)
 	}
+
+	wg.Wait()
+	SendNotification("Process Complete", "Finished Inserting Properties.")
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
 	file, err = os.Create("propertiesExpenses.json")
@@ -653,7 +667,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	if err := encoder.Encode(flatPropertiesExpenses); err != nil {
 		panic(err)
 	}
-	count, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
+	count, err := s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
 	if err != nil {
 		log.Printf("Failed to insert %d property expenses: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all property expenses:\n"+err.Error())
