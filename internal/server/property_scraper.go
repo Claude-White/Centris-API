@@ -178,7 +178,7 @@ func GetAllProperties() []string {
 
 func getAllPins(client *http.Client, aspNetCoreSession string, arrAffinitySameSite string) []Marker {
 	bodyData := InputData{
-		ZoomLevel: 18,
+		ZoomLevel: 11,
 		MapBounds: MapBounds{
 			NorthEast: Coordinate{
 				Lat: 51.41553513240069,
