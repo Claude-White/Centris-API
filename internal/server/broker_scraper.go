@@ -12,10 +12,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/schollz/progressbar/v3"
 	"golang.org/x/net/html"
 )
 
@@ -29,12 +31,8 @@ const (
 )
 
 func RunBrokerScraper() {
-	startTime := time.Now()
 	aspNetCoreSession, arrAffinitySameSite, numberOfBrokers := GenerateSession(baseUrl + BrokerUrl)
-
 	brokers, brokersPhoneNumbers, brokersExternalLinks := getBrokers(baseUrl+brokerEndpoint, numberOfBrokers, aspNetCoreSession, arrAffinitySameSite)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Finished getting all brokers in %s\n", elapsedTime)
 
 	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbErr != nil {
@@ -158,16 +156,24 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 	brokersPhoneNumbers := make([][]repository.CreateAllBrokerPhoneParams, 0, numberOfBrokers)
 	brokersExternalLinks := make([][]repository.CreateAllBrokerExternalLinkParams, 0, numberOfBrokers)
 
+	var seenIDs sync.Map
+	var mu sync.Mutex
+	bar := progressbar.Default(int64(numberOfBrokers))
 	for i := 0; i < numberOfBrokers; i++ {
+		bar.Add(1)
 		broker := <-brokerResults
-		brokers = append(brokers, broker)
+		if _, loaded := seenIDs.LoadOrStore(broker.ID, true); !loaded {
+			mu.Lock()
+			brokers = append(brokers, broker)
 
-		if phones := <-brokerPhoneResults; phones != nil {
-			brokersPhoneNumbers = append(brokersPhoneNumbers, phones)
-		}
+			if phones := <-brokerPhoneResults; phones != nil {
+				brokersPhoneNumbers = append(brokersPhoneNumbers, phones)
+			}
 
-		if links := <-brokerExternalLinkResults; links != nil {
-			brokersExternalLinks = append(brokersExternalLinks, links)
+			if links := <-brokerExternalLinkResults; links != nil {
+				brokersExternalLinks = append(brokersExternalLinks, links)
+			}
+			mu.Unlock()
 		}
 	}
 
@@ -188,7 +194,10 @@ func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffin
 		log.Printf("Error parsing HTML: %v", err)
 		return repository.CreateAllBrokersParams{}, nil, nil // or handle error appropriately
 	}
-	doc = FindElementByTagName(doc, "article")
+
+	if doc == nil {
+		return repository.CreateAllBrokersParams{}, nil, nil
+	}
 
 	broker := repository.CreateAllBrokersParams{
 		ID:                getBrokerID(doc),
@@ -208,7 +217,7 @@ func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffin
 		UpdatedAt:         &currentTime,
 	}
 
-	fmt.Println(broker.ID, "-", broker.FirstName, broker.LastName)
+	// fmt.Println(broker.ID, "-", broker.FirstName, broker.LastName)
 	return broker, getBrokerPhoneNumbers(broker.ID, doc), getBrokerExternalLinks(broker.ID, doc)
 }
 
@@ -437,28 +446,33 @@ func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, 
 	ctx := context.Background()
 
 	s.queries.DeleteAllBrokers(ctx)
-	SendNotification("Process Complete", "All brokers deleted.")
+	SendNotification("Process Complete", "All brokers deleted")
 
 	brokerNum, brokerErr := s.queries.CreateAllBrokers(ctx, brokers)
 	if brokerErr != nil {
 		log.Printf("Failed to insert brokers")
 		log.Println("Error: " + brokerErr.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d brokers", len(brokers)))
+		return
 	}
 
 	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
-	phoneNum, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
+	_, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
 	if phoneErr != nil {
 		log.Printf("Failed to insert broker phone numbers")
 		log.Println("Error: " + phoneErr.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker phone numbers", len(flatBrokersPhoneNumbers)))
+		return
 	}
 
 	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
-	linkNum, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
+	_, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
 	if linkErr != nil {
 		log.Printf("Failed to insert broker phone numbers")
 		log.Println("Error: " + linkErr.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker external links", len(flatBrokersExternalLinks)))
+		return
 	}
 
-	notifMessage := "Brokers: " + string(brokerNum) + " | Broker Phones: " + string(phoneNum) + " | Broker Links: " + string(linkNum)
-	SendNotification("Process Complete", notifMessage)
+	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d brokers", brokerNum))
 }
