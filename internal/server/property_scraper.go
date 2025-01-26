@@ -608,55 +608,51 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	ctx := context.Background()
 
 	s.queries.DeleteAllProperties(ctx)
-	SendNotification("Process Complete", "All properties deleted.")
+	SendNotification("Process Complete", "Successfully deleted all properties")
 
-	count, err := s.queries.CreateAllProperties(ctx, properties)
+	_, err := s.queries.CreateAllProperties(ctx, properties)
 	if err != nil {
-		log.Printf("Failed to insert %d properties: %s", count, err)
-		SendNotification("Failed to Insert", "An error occured while inserting all properties:\n"+err.Error())
-	} else {
-		fmt.Printf("Successfully inserted %d properties\n", count)
-		SendNotification("Process Complete", "All properties successfully inserted.")
+		log.Printf("Failed to insert properties")
+		log.Println("Error: " + err.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Failed to insert %d properties", len(properties)))
+		return
 	}
-	SendNotification("Process Complete", "Finished Inserting Properties.")
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
-	count, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
+	_, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
 	if err != nil {
-		log.Printf("Failed to insert %d property expenses: %s", count, err)
-		SendNotification("Failed to Insert", "An error occured while inserting all property expenses:\n"+err.Error())
-	} else {
-		fmt.Printf("Successfully inserted %d property expenses\n", count)
-		SendNotification("Process Complete", "All property expenses successfully inserted.")
+		log.Printf("Failed to insert property expenses")
+		log.Println("Error: " + err.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property expenses", len(flatPropertiesExpenses)))
+		return
 	}
 
 	flatPropertiesFeatures := flattenArray(propertiesFeatures)
-	count, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
+	_, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
 	if err != nil {
-		log.Printf("Failed to insert %d property features: %s", count, err)
-		SendNotification("Failed to Insert", "An error occured while inserting all property features:\n"+err.Error())
-	} else {
-		fmt.Printf("Successfully inserted %d properties features\n", count)
-		SendNotification("Process Complete", "All property features successfully inserted.")
+		log.Printf("Failed to insert property features")
+		log.Println("Error: " + err.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property features", len(flatPropertiesFeatures)))
+		return
 	}
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
-	count, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
+	_, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
 	if err != nil {
-		log.Printf("Failed to insert %d property photos: %s", count, err)
-		SendNotification("Failed to Insert", "An error occured while inserting all property photos:\n"+err.Error())
-	} else {
-		fmt.Printf("Successfully inserted %d properties\n", count)
-		SendNotification("Process Complete", "All property photos successfully inserted.")
+		log.Printf("Failed to insert property photos")
+		log.Println("Error: " + err.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property photos", len(flatPropertiesPhotos)))
+		return
 	}
 
 	flatBrokerProperties := flattenArray(brokersProperties)
-	count, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
+	_, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
 	if err != nil {
-		log.Printf("Failed to insert %d broker properties: %s", count, err)
-		SendNotification("Failed to Insert", "An error occured while inserting all broker properties:\n"+err.Error())
-	} else {
-		fmt.Printf("Successfully inserted %d broker properties\n", count)
-		SendNotification("Process Complete", "All broker properties successfully inserted.")
+		log.Printf("Failed to insert broker properties")
+		log.Println("Error: " + err.Error())
+		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker properties", len(flatBrokerProperties)))
+		return
 	}
+
+	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d properties", len(properties)))
 }
