@@ -602,7 +602,7 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 
 func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
-	bar := progressbar.Default(int64(3), "Inserting Property Data...")
+	bar := progressbar.Default(int64(5), "Inserting Property Data...")
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "Successfully deleted all properties")
 
@@ -653,6 +653,8 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker properties", len(flatBrokerProperties)))
 		return
 	}
+	bar.Add(1)
 
 	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d properties", len(properties)))
+	bar.Reset()
 }

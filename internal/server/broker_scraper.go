@@ -163,7 +163,7 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 
 	var seenIDs sync.Map
 	var mu sync.Mutex
-	bar := progressbar.Default(int64(numberOfBrokers))
+	bar := progressbar.Default(int64(numberOfBrokers), "Scraping Broker Data...")
 	for i := 0; i < numberOfBrokers; i++ {
 		bar.Add(1)
 		broker := <-brokerResults
@@ -181,6 +181,7 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 			mu.Unlock()
 		}
 	}
+	bar.Reset()
 
 	close(brokerResults)
 	close(brokerExternalLinkResults)
@@ -454,7 +455,7 @@ func flattenArray[T any](nested [][]T) []T {
 
 func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, brokersPhoneNumbers [][]repository.CreateAllBrokerPhoneParams, brokersExternalLinks [][]repository.CreateAllBrokerExternalLinkParams) {
 	ctx := context.Background()
-
+	bar := progressbar.Default(int64(3), "Inserting Broker Data...")
 	s.queries.DeleteAllBrokers(ctx)
 	SendNotification("Process Complete", "All brokers deleted")
 
@@ -465,6 +466,7 @@ func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, 
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d brokers", len(brokers)))
 		return
 	}
+	bar.Add(1)
 
 	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
 	_, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
@@ -474,6 +476,7 @@ func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, 
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker phone numbers", len(flatBrokersPhoneNumbers)))
 		return
 	}
+	bar.Add(1)
 
 	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
 	_, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
@@ -483,6 +486,8 @@ func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, 
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker external links", len(flatBrokersExternalLinks)))
 		return
 	}
+	bar.Add(1)
 
 	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d brokers", brokerNum))
+	bar.Reset()
 }
