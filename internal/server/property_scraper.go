@@ -607,61 +607,21 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
 
-	file, err := os.Create("properties.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(properties); err != nil {
-		panic(err)
-	}
-
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "All properties deleted.")
 
-	semaphore := make(chan struct{}, 50)
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-
-	for _, property := range properties {
-		wg.Add(1)
-		semaphore <- struct{}{} // Acquire semaphore slot
-
-		go func(prop repository.CreateAllPropertiesParams) {
-			defer wg.Done()
-			defer func() { <-semaphore }() // Release semaphore slot
-
-			id, err := s.queries.CreateProperty(ctx, repository.CreatePropertyParams(prop))
-
-			mu.Lock()
-			if err != nil {
-				log.Printf("Failed to insert property %d: %s", prop.ID, err)
-			} else {
-				log.Printf("Property %d successfully inserted", id)
-			}
-			mu.Unlock()
-		}(property)
+	count, err := s.queries.CreateAllProperties(ctx, properties)
+	if err != nil {
+		log.Printf("Failed to insert %d properties: %s", count, err)
+		SendNotification("Failed to Insert", "An error occured while inserting all properties:\n"+err.Error())
+	} else {
+		fmt.Printf("Successfully inserted %d properties\n", count)
+		SendNotification("Process Complete", "All properties successfully inserted.")
 	}
-
-	wg.Wait()
 	SendNotification("Process Complete", "Finished Inserting Properties.")
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
-	file, err = os.Create("propertiesExpenses.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	encoder = json.NewEncoder(file)
-	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(flatPropertiesExpenses); err != nil {
-		panic(err)
-	}
-	count, err := s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
+	count, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
 	if err != nil {
 		log.Printf("Failed to insert %d property expenses: %s", count, err)
 		SendNotification("Failed to Insert", "An error occured while inserting all property expenses:\n"+err.Error())
@@ -671,17 +631,6 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatPropertiesFeatures := flattenArray(propertiesFeatures)
-	file, err = os.Create("propertiesFeatures.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	encoder = json.NewEncoder(file)
-	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(flatPropertiesFeatures); err != nil {
-		panic(err)
-	}
 	count, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
 	if err != nil {
 		log.Printf("Failed to insert %d property features: %s", count, err)
@@ -692,17 +641,6 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
-	file, err = os.Create("propertiesPhotos.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	encoder = json.NewEncoder(file)
-	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(flatPropertiesPhotos); err != nil {
-		panic(err)
-	}
 	count, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
 	if err != nil {
 		log.Printf("Failed to insert %d property photos: %s", count, err)
@@ -713,17 +651,6 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 	}
 
 	flatBrokerProperties := flattenArray(brokersProperties)
-	file, err = os.Create("brokerProperties.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	encoder = json.NewEncoder(file)
-	encoder.SetIndent("", "  ") // Pretty-print JSON
-	if err := encoder.Encode(flatBrokerProperties); err != nil {
-		panic(err)
-	}
 	count, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
 	if err != nil {
 		log.Printf("Failed to insert %d broker properties: %s", count, err)
