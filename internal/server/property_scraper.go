@@ -34,7 +34,6 @@ const (
 
 func RunPropertyScraper() {
 	properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties := getProperties()
-	log.Println("Finished scraping all property data")
 	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to the database: %v", dbErr)
@@ -43,8 +42,6 @@ func RunPropertyScraper() {
 	dbServer := CreateServer(conn)
 	dbServer.uploadPropertiesToDB(properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties)
 }
-
-// Test
 
 func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.CreateAllPropertiesExpensesParams, [][]repository.CreateAllPropertiesFeaturesParams, [][]repository.CreateAllPropertiesPhotosParams, [][]repository.CreateAllBrokersPropertiesParams) {
 	transport := &http.Transport{
@@ -70,7 +67,6 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 	semaphore := make(chan struct{}, 50)
 
 	links := GetAllProperties()
-	log.Println("Finished getting all property links")
 	// Shared resources (declare sync.Mutex here)
 	var (
 		properties         []repository.CreateAllPropertiesParams
@@ -81,6 +77,9 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 		mutex              sync.Mutex // Declare mutex here
 		seenIDs            sync.Map
 	)
+
+	bar := progressbar.Default(int64(len(links)), "Scraping Property Links...")
+
 	for _, link := range links {
 		wg.Add(1)
 		go func(url string) {
@@ -118,7 +117,7 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 			}
 
 			if link != "https://www.centris.ca" {
-				fmt.Println(link)
+				// fmt.Println(link)
 				property := getProperty(doc)
 
 				if _, loaded := seenIDs.LoadOrStore(property.ID, true); !loaded {
@@ -135,11 +134,13 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 					brokersProperties = append(brokersProperties, brokerProperties)
 					mutex.Unlock()
 				}
+				bar.Add(1)
 			}
 
 		}(link)
 	}
 	wg.Wait()
+	bar.Reset()
 
 	return properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties
 }
@@ -224,7 +225,7 @@ func getAllHouses(client *http.Client, pins []Marker, aspNetCoreSession string, 
 	}
 
 	// Create progress bar once
-	bar := progressbar.Default(int64(totalProperties))
+	bar := progressbar.Default(int64(totalProperties), "Fetching Property Links...")
 
 	// Use semaphore to limit concurrent goroutines
 	sem := make(chan struct{}, maxConcurrentRequests)
@@ -259,6 +260,7 @@ func getAllHouses(client *http.Client, pins []Marker, aspNetCoreSession string, 
 	}
 
 	wg.Wait()
+	bar.Reset()
 	return houseLinks
 }
 
@@ -606,7 +608,7 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 
 func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
-
+	bar := progressbar.Default(int64(3), "Inserting Property Data...")
 	s.queries.DeleteAllProperties(ctx)
 	SendNotification("Process Complete", "Successfully deleted all properties")
 
@@ -617,6 +619,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 		SendNotification("Process Failed", fmt.Sprintf("Failed to insert %d properties", len(properties)))
 		return
 	}
+	bar.Add(1)
 
 	flatPropertiesExpenses := flattenArray(propertiesExpenses)
 	_, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
@@ -626,6 +629,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property expenses", len(flatPropertiesExpenses)))
 		return
 	}
+	bar.Add(1)
 
 	flatPropertiesFeatures := flattenArray(propertiesFeatures)
 	_, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
@@ -635,6 +639,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property features", len(flatPropertiesFeatures)))
 		return
 	}
+	bar.Add(1)
 
 	flatPropertiesPhotos := flattenArray(propertiesPhotos)
 	_, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
@@ -644,6 +649,7 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property photos", len(flatPropertiesPhotos)))
 		return
 	}
+	bar.Add(1)
 
 	flatBrokerProperties := flattenArray(brokersProperties)
 	_, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
