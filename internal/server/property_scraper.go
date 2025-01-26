@@ -57,12 +57,6 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 		Timeout:   0, // No global timeout
 	}
 
-	file, err := os.Create("Copies.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 50)
 
