@@ -40,8 +40,8 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	done <- true
 }
 
-//	@title		Swagger Centris API
-//	@version	0.1
+// @title		Swagger Centris API
+// @version	0.1
 func main() {
 	var command string
 	if len(os.Args) > 1 {
@@ -51,8 +51,6 @@ func main() {
 	switch command {
 	case "broker-scraper":
 		server.RunBrokerScraper()
-		fmt.Println("Finished Broker Scraper...")
-		server.SendNotification("Process Complete", "Broker Scraper complete.")
 	case "property-scraper":
 		server.RunPropertyScraper()
 		fmt.Println("Finished Property Scraper...")
