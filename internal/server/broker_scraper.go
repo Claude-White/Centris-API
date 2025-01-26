@@ -79,6 +79,11 @@ func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, 
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		fmt.Println(resp.StatusCode)
+		return BrokerResponse{}
+	}
+
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -241,7 +246,12 @@ func getBrokerCorporationName(doc *html.Node) *string {
 }
 
 func getBrokerTitle(brokerResponse BrokerResponse) string {
-	return strings.TrimSuffix(strings.Split(brokerResponse.D.Result.Title, ", ")[1], " - Centris.ca")
+	parts := strings.Split(brokerResponse.D.Result.Title, ", ")
+	if len(parts) < 2 {
+		// Return a default or empty string if the title doesn't match expected format
+		return "Courtier Immobilier"
+	}
+	return strings.TrimSuffix(parts[1], " - Centris.ca")
 }
 
 func getBrokerName(brokerResponse BrokerResponse) string {
