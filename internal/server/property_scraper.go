@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -44,17 +43,9 @@ func RunPropertyScraper() {
 }
 
 func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.CreateAllPropertiesExpensesParams, [][]repository.CreateAllPropertiesFeaturesParams, [][]repository.CreateAllPropertiesPhotosParams, [][]repository.CreateAllBrokersPropertiesParams) {
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second, // Connection timeout
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   0, // No global timeout
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Failed to create http client:", err)
 	}
 
 	var wg sync.WaitGroup
@@ -140,18 +131,9 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 }
 
 func GetAllProperties() []string {
-	// Create a transport with connection pooling
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second, // Connection timeout
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   0, // No global timeout
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Failed to create http client:", err)
 	}
 
 	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl + PropertyMapUrl)
@@ -535,8 +517,11 @@ func getPropertyPhotos(propertyId int64) []repository.CreateAllPropertiesPhotosP
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 
-	// Make request
-	client := &http.Client{}
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Failed to create http client:", err)
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil
