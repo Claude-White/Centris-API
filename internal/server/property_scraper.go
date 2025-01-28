@@ -74,7 +74,13 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 
 	bar := progressbar.Default(int64(len(links)), "Scraping Property Links...")
 
-	for _, link := range links {
+	podIndex, _ := strconv.Atoi((os.Getenv("POD_INDEX")))
+	numPods, _ := strconv.Atoi(os.Getenv("NUM_PODS"))
+
+	startIndex, endIndex := calculateURLRange(podIndex, numPods, len(links))
+	linkSlice := links[startIndex:endIndex]
+
+	for _, link := range linkSlice {
 		wg.Add(1)
 		go func(url string) {
 			defer wg.Done()
