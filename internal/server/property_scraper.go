@@ -594,8 +594,13 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
 	ctx := context.Background()
 	bar := progressbar.Default(int64(5), "Inserting Property Data...")
-	s.queries.DeleteAllProperties(ctx)
-	SendNotification("Process Complete", "Successfully deleted all properties")
+
+	// Only first pod runs delete all properties
+	podIndex, _ := strconv.Atoi((os.Getenv("POD_INDEX")))
+	if podIndex == 0 {
+		s.queries.DeleteAllProperties(ctx)
+		SendNotification("Process Complete", "Successfully deleted all properties")
+	}
 
 	_, err := s.queries.CreateAllProperties(ctx, properties)
 	if err != nil {
