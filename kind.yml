@@ -15,6 +15,7 @@ spec:
       containers:
         - name: centris-scraper
           image: centris-scraper:latest
+          imagePullPolicy: IfNotPresent
           env:
             - name: PROXY_HOST
               value: "127.0.0.1:9050"
