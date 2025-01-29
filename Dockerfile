@@ -24,5 +24,3 @@ ENV NUM_PODS=100
 
 EXPOSE ${PORT}
 CMD tor & ./main property-scraper
-
-
