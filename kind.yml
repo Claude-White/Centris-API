@@ -19,7 +19,7 @@ spec:
             - name: PROXY_HOST
               value: "127.0.0.1:9050"
             - name: DATABASE_URL
-              value: "postgresql://postgres.wozrsuxaxijneojygblo:contests-whisk-borrow-PLUNDER3@aws-0-ca-central-1.pooler.supabase.com:5432/postgres?sslmode=require&options=-c%20statement_timeout%3D120000"
+              value: "[DB_URL]"
             - name: APP_ENV
               value: "local"
             - name: PORT
