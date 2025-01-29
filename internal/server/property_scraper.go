@@ -602,6 +602,13 @@ func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertie
 		SendNotification("Process Complete", "Successfully deleted all properties")
 	}
 
+	// Only first pod runs delete all properties
+	podIndex, _ := strconv.Atoi((os.Getenv("POD_INDEX")))
+	if podIndex == 0 {
+		s.queries.DeleteAllProperties(ctx)
+		SendNotification("Process Complete", "Successfully deleted all properties")
+	}
+
 	_, err := s.queries.CreateAllProperties(ctx, properties)
 	if err != nil {
 		log.Printf("Failed to insert properties")
