@@ -1,20 +1,20 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: centris-scraper-deployment
+  name: centris-scraper-job
 spec:
-  replicas: 20 # Set this to your desired number of pods
-  selector:
-    matchLabels:
-      app: centris-scraper
+  completions: 20  # Run exactly 20 pods
+  parallelism: 5   # Run up to 5 scrapers in parallel (adjust as needed)
   template:
     metadata:
       labels:
         app: centris-scraper
     spec:
+      restartPolicy: Never  # Ensures completed pods do NOT restart
       containers:
         - name: centris-scraper
           image: centris-scraper:latest
+          imagePullPolicy: IfNotPresent
           env:
             - name: PROXY_HOST
               value: "127.0.0.1:9050"
