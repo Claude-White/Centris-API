@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: centris-scraper-deployment
+spec:
+  replicas: 20 # Set this to your desired number of pods
+  selector:
+    matchLabels:
+      app: centris-scraper
+  template:
+    metadata:
+      labels:
+        app: centris-scraper
+    spec:
+      containers:
+        - name: centris-scraper
+          image: centris-scraper:latest
+          env:
+            - name: PROXY_HOST
+              value: "127.0.0.1:9050"
+            - name: DATABASE_URL
+              value: "[DB_URL]"
+            - name: APP_ENV
+              value: "local"
+            - name: PORT
+              value: "8080"
+            - name: NUM_PODS
+              value: "100"
+            - name: POD_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['pod-index']
