@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"centris-api/internal/database"
 	"centris-api/internal/repository"
 	"context"
 	"encoding/json"
@@ -9,15 +10,14 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/schollz/progressbar/v3"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/net/html"
 )
 
@@ -34,14 +34,22 @@ func RunBrokerScraper() {
 	aspNetCoreSession, arrAffinitySameSite, numberOfBrokers := GenerateSession(baseUrl + BrokerUrl)
 	brokers, brokersPhoneNumbers, brokersExternalLinks := getBrokers(baseUrl+brokerEndpoint, numberOfBrokers, aspNetCoreSession, arrAffinitySameSite)
 
-	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-	if dbErr != nil {
-		log.Fatalf("Failed to connect to the database: %v", dbErr)
-	}
-	defer conn.Close(context.Background())
+	// conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	conn, err := database.ConnectToDatabase()
 
-	dbServer := CreateServer(conn)
-	dbServer.uploadBrokersToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
+
+	var query = bson.D{{"type", "Oolong"}}
+
+	conn.Collection("brokers").Find(context.TODO(), query)
+
+	fmt.Println(brokersPhoneNumbers)
+	fmt.Println(brokersExternalLinks)
+	fmt.Println(brokers)
+
+	// dbServer.uploadBrokersToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
 }
 
 func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
