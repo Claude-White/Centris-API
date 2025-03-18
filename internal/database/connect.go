@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"log"
 	"os"
 
@@ -22,10 +21,6 @@ func ConnectToDatabase() (*mongo.Database, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			return
-		}
-	}()
+
 	return client.Database(os.Getenv("MONGODB_NAME")), nil
 }
