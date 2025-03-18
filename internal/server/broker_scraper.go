@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"centris-api/internal/database"
-	"centris-api/internal/repository"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -18,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/schollz/progressbar/v3"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/net/html"
 )
 
@@ -32,24 +32,14 @@ const (
 
 func RunBrokerScraper() {
 	aspNetCoreSession, arrAffinitySameSite, numberOfBrokers := GenerateSession(baseUrl + BrokerUrl)
-	brokers, brokersPhoneNumbers, brokersExternalLinks := getBrokers(baseUrl+brokerEndpoint, numberOfBrokers, aspNetCoreSession, arrAffinitySameSite)
+	brokers := getBrokers(baseUrl+brokerEndpoint, numberOfBrokers, aspNetCoreSession, arrAffinitySameSite)
 
-	// conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	conn, err := database.ConnectToDatabase()
-
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
-	var query = bson.D{{"type", "Oolong"}}
-
-	conn.Collection("brokers").Find(context.TODO(), query)
-
-	fmt.Println(brokersPhoneNumbers)
-	fmt.Println(brokersExternalLinks)
-	fmt.Println(brokers)
-
-	// dbServer.uploadBrokersToDB(brokers, brokersPhoneNumbers, brokersExternalLinks)
+	uploadBrokersToDB(conn, brokers)
 }
 
 func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
@@ -79,10 +69,9 @@ func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, 
 	req.Header.Set("Cookie", ".AspNetCore.Session="+aspNetCoreSession+"; ARRAffinitySameSite="+arrAffinitySameSite+";")
 
 	// Send the request using the default HTTP client
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error sending request:", err)
+	resp := recursiveRequestUntilSuccess(req)
+	if resp == nil {
+		fmt.Println("Failed to get a valid response")
 		return BrokerResponse{}
 	}
 	defer resp.Body.Close()
@@ -110,64 +99,72 @@ func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, 
 	return brokerResponse
 }
 
-func parseBrokerName(fullName string) (string, *string, string) {
+func recursiveRequestUntilSuccess(req *http.Request) *http.Response {
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Error creating client:", err)
+		return nil
+	}
+
+	var resp *http.Response
+	retryCount := 0
+	for {
+		resp, err = client.Do(req)
+		if err != nil {
+			fmt.Println("Error sending request:", err)
+			retryCount++
+			if retryCount > 5 { // Limit retries
+				fmt.Println("Max retries reached, aborting.")
+				return nil
+			}
+			time.Sleep(time.Duration(retryCount) * 2 * time.Second) // Exponential backoff
+			continue
+		}
+		return resp
+	}
+}
+
+func parseBrokerName(fullName string) (string, string, string) {
 	parts := strings.Split(fullName, " ")
 	var firstName, lastName string
-	var middleName *string
+	var middleName string
 
 	switch len(parts) {
 	case 1:
 		// Only one part, treat it as the first name
 		firstName = parts[0]
 		lastName = ""
-		middleName = nil
+		middleName = ""
 	case 2:
 		// Two parts, treat them as first and last name
 		firstName = parts[0]
 		lastName = parts[1]
-		middleName = nil
+		middleName = ""
 	default:
 		// Three or more parts, assume first name, middle name(s), and last name
 		firstName = parts[0]
 		lastName = parts[len(parts)-1]
 		middle := strings.Join(parts[1:len(parts)-1], " ")
-		middleName = &middle
+		middleName = middle
 	}
 
 	return firstName, middleName, lastName
 }
 
-func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAffinitySameSite string) ([]repository.CreateAllBrokersParams, [][]repository.CreateAllBrokerPhoneParams, [][]repository.CreateAllBrokerExternalLinkParams) {
-	brokerResults := make(chan repository.CreateAllBrokersParams, numberOfBrokers)
-	brokerPhoneResults := make(chan []repository.CreateAllBrokerPhoneParams, numberOfBrokers)
-	brokerExternalLinkResults := make(chan []repository.CreateAllBrokerExternalLinkParams, numberOfBrokers)
+func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAffinitySameSite string) []interface{} {
+	brokerResults := make(chan Broker, numberOfBrokers)
 	sem := make(chan struct{}, 50) // Limit to 50 concurrent requests
 
 	for position := 0; position < numberOfBrokers; position++ {
 		go func(pos int) {
 			sem <- struct{}{}        // Acquire a spot
 			defer func() { <-sem }() // Release the spot
-			broker, brokerPhones, brokerExternalLinks := getBroker(url, pos, aspNetCoreSession, arrAffinitySameSite)
+			broker := getBroker(url, pos, aspNetCoreSession, arrAffinitySameSite)
 			brokerResults <- broker
-
-			// Only send non-nil and non-empty arrays
-			if len(brokerPhones) > 0 {
-				brokerPhoneResults <- brokerPhones
-			} else {
-				brokerPhoneResults <- nil
-			}
-
-			if len(brokerExternalLinks) > 0 {
-				brokerExternalLinkResults <- brokerExternalLinks
-			} else {
-				brokerExternalLinkResults <- nil
-			}
 		}(position)
 	}
 
-	brokers := make([]repository.CreateAllBrokersParams, 0, numberOfBrokers)
-	brokersPhoneNumbers := make([][]repository.CreateAllBrokerPhoneParams, 0, numberOfBrokers)
-	brokersExternalLinks := make([][]repository.CreateAllBrokerExternalLinkParams, 0, numberOfBrokers)
+	brokers := make([]interface{}, 0, numberOfBrokers)
 
 	var seenIDs sync.Map
 	var mu sync.Mutex
@@ -178,42 +175,31 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 		if _, loaded := seenIDs.LoadOrStore(broker.ID, true); !loaded {
 			mu.Lock()
 			brokers = append(brokers, broker)
-
-			if phones := <-brokerPhoneResults; phones != nil {
-				brokersPhoneNumbers = append(brokersPhoneNumbers, phones)
-			}
-
-			if links := <-brokerExternalLinkResults; links != nil {
-				brokersExternalLinks = append(brokersExternalLinks, links)
-			}
 			mu.Unlock()
 		}
 	}
 	bar.Reset()
 
 	close(brokerResults)
-	close(brokerExternalLinkResults)
-	close(brokerPhoneResults)
-	return brokers, brokersPhoneNumbers, brokersExternalLinks
+	return brokers
 }
 
-func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) (repository.CreateAllBrokersParams, []repository.CreateAllBrokerPhoneParams, []repository.CreateAllBrokerExternalLinkParams) {
+func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) Broker {
 	brokerResponse := makeBrokerRequest(url, startPosition, aspNetCoreSession, arrAffinitySameSite)
 	brokerName := getBrokerName(brokerResponse)
 	brokerFirstName, brokerMiddleName, brokerLastName := parseBrokerName(brokerName)
-	currentTime := time.Now()
 
 	doc, err := html.Parse(strings.NewReader(brokerResponse.D.Result.Html))
 	if err != nil {
 		log.Printf("Error parsing HTML: %v", err)
-		return repository.CreateAllBrokersParams{}, nil, nil // or handle error appropriately
+		return Broker{} // or handle error appropriately
 	}
 
 	if doc == nil {
-		return repository.CreateAllBrokersParams{}, nil, nil
+		return Broker{}
 	}
 
-	broker := repository.CreateAllBrokersParams{
+	broker := Broker{
 		ID:                getBrokerID(doc),
 		FirstName:         brokerFirstName,
 		MiddleName:        brokerMiddleName,
@@ -227,19 +213,17 @@ func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffin
 		AgencyName:        FindElementByClass(doc, "h2", "p1 m-0 broker-info__agency-name"),
 		AgencyAddress:     FindElementAttribute(doc, "a", "title", "Google Map", "title"),
 		AgencyLogo:        getBrokerAgencyLogo(doc),
-		CreatedAt:         &currentTime,
-		UpdatedAt:         &currentTime,
+		ExternalLinks:     getBrokerExternalLinks(doc),
+		PhoneNumbers:      getBrokerPhoneNumbers(doc),
 	}
-
-	// fmt.Println(broker.ID, "-", broker.FirstName, broker.LastName)
-	return broker, getBrokerPhoneNumbers(broker.ID, doc), getBrokerExternalLinks(broker.ID, doc)
+	return broker
 }
 
-func getBrokerCorporationName(doc *html.Node) *string {
+func getBrokerCorporationName(doc *html.Node) string {
 	// Find all text within the column div
 	columnContent := FindElementByClassNode(doc, "div", "col-8 col-md-9")
 	if columnContent == nil {
-		return nil
+		return ""
 	}
 
 	// Find the second p1 div
@@ -247,11 +231,11 @@ func getBrokerCorporationName(doc *html.Node) *string {
 	if secondP1Div != nil {
 		corpName := strings.TrimSpace(ExtractText(secondP1Div))
 		if corpName != "" {
-			return &corpName
+			return corpName
 		}
 	}
 
-	return nil
+	return ""
 }
 
 func getBrokerTitle(brokerResponse BrokerResponse) string {
@@ -279,13 +263,11 @@ func getBrokerAgencyLogo(n *html.Node) *string {
 	return brokerAgencyLogo
 }
 
-func getBrokerProfilePhoto(n *html.Node) *string {
-	var brokerProfilePhoto *string
+func getBrokerProfilePhoto(n *html.Node) string {
+	var brokerProfilePhoto string
 	brokerPhotoUrl := FindElementAttribute(n, "img", "class", "img-fluid broker-info-broker-image", "src")
 	if brokerPhotoUrl == "https://cdn.centris.ca/public/qc/consumersite/images/no-broker-pictureV3.png" {
-		brokerProfilePhoto = nil
-	} else {
-		brokerProfilePhoto = &brokerPhotoUrl
+		brokerProfilePhoto = ""
 	}
 
 	return brokerProfilePhoto
@@ -296,12 +278,12 @@ func getBrokerID(n *html.Node) int64 {
 	return num
 }
 
-func getBrokerComplimentaryInfo(n *html.Node) *string {
+func getBrokerComplimentaryInfo(n *html.Node) string {
 	var info string
 	node := FindElementByClassNode(n, "div", "col-lg-6 mb-3")
 
 	if node == nil {
-		return nil
+		return ""
 	}
 
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
@@ -341,34 +323,20 @@ func getBrokerComplimentaryInfo(n *html.Node) *string {
 		}
 	}
 
-	if info == "" {
-		return nil
-	}
-	return &info
+	return info
 }
 
-func getBrokerServedAreas(n *html.Node) *string {
-	servedAreas := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(FindElementByClass(n, "div", "col-lg-6")), "Territoire desservi"))
-	if servedAreas == "" {
-		return nil
-	}
-	servedAreasValue := &servedAreas
-	return servedAreasValue
+func getBrokerServedAreas(n *html.Node) string {
+	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(FindElementByClass(n, "div", "col-lg-6")), "Territoire desservi"))
 }
 
-func getBrokerPresentation(n *html.Node) *string {
-	presentation := strings.TrimSpace(FindElementByClass(n, "div", "p2 broker-summary-presentation-text"))
-	if presentation == "" {
-		return nil
-	}
-	presentationValue := &presentation
-	return presentationValue
+func getBrokerPresentation(n *html.Node) string {
+	return strings.TrimSpace(FindElementByClass(n, "div", "p2 broker-summary-presentation-text"))
 }
 
-func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.CreateAllBrokerPhoneParams {
+func getBrokerPhoneNumbers(n *html.Node) []BrokerPhone {
 	aTags := FindElementsByAttribute(n, "itemprop", "telephone")
-	var phoneNumberArr []repository.CreateAllBrokerPhoneParams
-	currentTime := time.Now()
+	var phoneNumberArr []BrokerPhone
 
 	for _, a := range aTags {
 		phoneNumber := strings.ToLower(ExtractText(a))
@@ -381,12 +349,10 @@ func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.CreateAllB
 			phoneNumberType = "Courtier"
 		}
 
-		brokerPhone := repository.CreateAllBrokerPhoneParams{
-			ID:        uuid.New(),
-			BrokerID:  brokerID,
-			Number:    phoneNumber,
-			Type:      phoneNumberType,
-			CreatedAt: &currentTime,
+		brokerPhone := BrokerPhone{
+			ID:     uuid.New(),
+			Number: phoneNumber,
+			Type:   phoneNumberType,
 		}
 
 		phoneNumberArr = append(phoneNumberArr, brokerPhone)
@@ -394,15 +360,14 @@ func getBrokerPhoneNumbers(brokerID int64, n *html.Node) []repository.CreateAllB
 	return phoneNumberArr
 }
 
-func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.CreateAllBrokerExternalLinkParams {
+func getBrokerExternalLinks(n *html.Node) []BrokerExternalLink {
 	externalLinks := FindElementsByAttribute(n, "class", "btn btn-outline-icon-only")
 	agencyExternalLink := FindElementByClassNode(n, "a", "btn btn-outline-icon-only broker-info-office-info-icon")
 	if agencyExternalLink != nil {
 		externalLinks = append(externalLinks, agencyExternalLink)
 	}
 
-	currentTime := time.Now()
-	var brokerExternalLinks []repository.CreateAllBrokerExternalLinkParams
+	var brokerExternalLinks []BrokerExternalLink
 
 	for _, externalLink := range externalLinks {
 		externalLinkTitle := FindElementAttribute(externalLink, "a", "target", "_blank", "title")
@@ -434,12 +399,10 @@ func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.CreateAll
 
 		externalLinkHref := FindElementAttribute(externalLink, "a", "target", "_blank", "href")
 
-		brokerExternalLink := repository.CreateAllBrokerExternalLinkParams{
-			ID:        uuid.New(),
-			BrokerID:  brokerID,
-			Type:      brokerLinkType,
-			Link:      externalLinkHref,
-			CreatedAt: &currentTime,
+		brokerExternalLink := BrokerExternalLink{
+			ID:   uuid.New(),
+			Type: brokerLinkType,
+			Link: externalLinkHref,
 		}
 
 		brokerExternalLinks = append(brokerExternalLinks, brokerExternalLink)
@@ -448,54 +411,26 @@ func getBrokerExternalLinks(brokerID int64, n *html.Node) []repository.CreateAll
 	return brokerExternalLinks
 }
 
-func flattenArray[T any](nested [][]T) []T {
-	totalLength := 0
-	for _, inner := range nested {
-		totalLength += len(inner)
-	}
+func uploadBrokersToDB(conn *mongo.Database, brokers []interface{}) {
+	bar := progressbar.Default(int64(1), "Inserting Broker Data...")
 
-	flat := make([]T, 0, totalLength)
-	for _, inner := range nested {
-		flat = append(flat, inner...)
-	}
-	return flat
-}
-
-func (s *Server) uploadBrokersToDB(brokers []repository.CreateAllBrokersParams, brokersPhoneNumbers [][]repository.CreateAllBrokerPhoneParams, brokersExternalLinks [][]repository.CreateAllBrokerExternalLinkParams) {
-	ctx := context.Background()
-	bar := progressbar.Default(int64(3), "Inserting Broker Data...")
-	s.queries.DeleteAllBrokers(ctx)
-	SendNotification("Process Complete", "All brokers deleted")
-
-	brokerNum, brokerErr := s.queries.CreateAllBrokers(ctx, brokers)
-	if brokerErr != nil {
-		log.Printf("Failed to insert brokers")
-		log.Println("Error: " + brokerErr.Error())
+	deleteResult, err := conn.Collection("brokers").DeleteMany(context.TODO(), bson.M{})
+	if err != nil {
+		log.Printf("Failed to delete brokers")
+		log.Println("Error: " + err.Error())
 		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d brokers", len(brokers)))
 		return
 	}
-	bar.Add(1)
+	SendNotification("Process Complete", fmt.Sprintf("All %d brokers deleted", deleteResult.DeletedCount))
 
-	flatBrokersPhoneNumbers := flattenArray(brokersPhoneNumbers)
-	_, phoneErr := s.queries.CreateAllBrokerPhone(ctx, flatBrokersPhoneNumbers)
-	if phoneErr != nil {
-		log.Printf("Failed to insert broker phone numbers")
-		log.Println("Error: " + phoneErr.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker phone numbers", len(flatBrokersPhoneNumbers)))
+	insertResult, err := conn.Collection("brokers").InsertMany(context.TODO(), brokers)
+	if err != nil {
+		log.Printf("Failed to insert brokers")
+		log.Println("Error: " + err.Error())
 		return
 	}
 	bar.Add(1)
 
-	flatBrokersExternalLinks := flattenArray(brokersExternalLinks)
-	_, linkErr := s.queries.CreateAllBrokerExternalLink(ctx, flatBrokersExternalLinks)
-	if linkErr != nil {
-		log.Printf("Failed to insert broker phone numbers")
-		log.Println("Error: " + linkErr.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker external links", len(flatBrokersExternalLinks)))
-		return
-	}
-	bar.Add(1)
-
-	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d brokers", brokerNum))
+	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d brokers", len(insertResult.InsertedIDs)))
 	bar.Reset()
 }
