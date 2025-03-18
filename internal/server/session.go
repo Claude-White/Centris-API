@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,10 +11,24 @@ import (
 )
 
 func GenerateSession(url string) (string, string, int) {
+	// Create a new HTTP request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Println("Error creating HTTP request:", err)
+		return "", "", 0
+	}
+
 	// Make the GET request
-	resp, err := http.Get(url)
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Error creating client:", err)
+		return "", "", 0
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatalf("Failed to make GET request: %v", err)
+		return "", "", 0
 	}
 	defer resp.Body.Close()
 
