@@ -55,6 +55,11 @@ func main() {
 	case "property-scraper":
 		server.RunPropertyScraper()
 		fmt.Println("Finished Property Scraper...")
+	case "both":
+		server.RunBrokerScraper()
+		fmt.Println("Finished Broker Scraper...")
+		server.RunPropertyScraper()
+		fmt.Println("Finished Property Scraper...")
 	default:
 		httpServer()
 	}
