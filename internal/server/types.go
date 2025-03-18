@@ -1,6 +1,10 @@
 package server
 
-import "centris-api/internal/repository"
+import (
+	"centris-api/internal/repository"
+
+	"github.com/google/uuid"
+)
 
 // Coordinate represents latitude and longitude
 type Coordinate struct {
@@ -152,4 +156,74 @@ type CompleteBroker struct {
 	Broker        repository.Broker
 	Broker_Phones []repository.BrokerPhone
 	Broker_Links  []repository.BrokerExternalLink
+}
+
+type Broker struct {
+	ID                int64                `bson:"id,omitempty"`
+	FirstName         string               `bson:"first_name,omitempty"`
+	MiddleName        string               `bson:"middle_name,omitempty"`
+	LastName          string               `bson:"last_name,omitempty"`
+	Title             string               `bson:"title,omitempty"`
+	ProfilePhoto      string               `bson:"profile_photo,omitempty"`
+	ComplementaryInfo string               `bson:"complementary_info,omitempty"`
+	ServedAreas       string               `bson:"served_areas,omitempty"`
+	Presentation      string               `bson:"presentation,omitempty"`
+	CorporationName   string               `bson:"corporation_name,omitempty"`
+	AgencyName        string               `bson:"agency_name,omitempty"`
+	AgencyAddress     string               `bson:"agency_address,omitempty"`
+	AgencyLogo        *string              `bson:"agency_logo,omitempty"`
+	ExternalLinks     []BrokerExternalLink `bson:"external_links,omitempty"`
+	PhoneNumbers      []BrokerPhone        `bson:"phone_numbers,omitempty"`
+	Properties        []Property           `bson:"properties,omitempty"`
+}
+
+type BrokerExternalLink struct {
+	ID   uuid.UUID `bson:"id,omitempty"`
+	Type string    `bson:"type,omitempty"`
+	Link string    `bson:"link,omitempty"`
+}
+
+type BrokerPhone struct {
+	ID     uuid.UUID `bson:"id,omitempty"`
+	Type   string    `bson:"type,omitempty"`
+	Number string    `bson:"number,omitempty"`
+}
+
+type Property struct {
+	// MLS number
+	ID             int64             `bson:"mls,omitempty"`
+	Title          string            `bson:"title,omitempty"`
+	Category       string            `bson:"category,omitempty"`
+	Address        string            `bson:"address,omitempty"`
+	CityName       string            `bson:"city_name,omitempty"`
+	Price          float32           `bson:"price,omitempty"`
+	Description    *string           `bson:"description,omitempty"`
+	BedroomNumber  *int32            `bson:"bedroom_number,omitempty"`
+	RoomNumber     *int32            `bson:"room_number,omitempty"`
+	BathroomNumber *int32            `bson:"bathroom_number,omitempty"`
+	Latitude       float32           `bson:"latitude,omitempty"`
+	Longitude      float32           `bson:"longitude,omitempty"`
+	Expenses       []PropertyExpense `bson:"expenses,omitempty"`
+	Features       []PropertyFeature `bson:"features,omitempty"`
+	Photos         []PropertyPhoto   `bson:"photos,omitempty"`
+	BrokerIds      []int64           `bson:"broker_ids,omitempty"`
+}
+
+type PropertyExpense struct {
+	ID           uuid.UUID `bson:"id,omitempty"`
+	Type         string    `bson:"type,omitempty"`
+	AnnualPrice  float32   `bson:"annual_price,omitempty"`
+	MonthlyPrice float32   `bson:"monthly_price,omitempty"`
+}
+
+type PropertyFeature struct {
+	ID    uuid.UUID `bson:"id,omitempty"`
+	Title string    `bson:"title,omitempty"`
+	Value string    `bson:"value,omitempty"`
+}
+
+type PropertyPhoto struct {
+	ID          uuid.UUID `bson:"id,omitempty"`
+	Link        string    `bson:"link,omitempty"`
+	Description *string   `bson:"description,omitempty"`
 }

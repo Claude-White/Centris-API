@@ -2,15 +2,13 @@ package server
 
 import (
 	"bytes"
-	"centris-api/internal/repository"
+	"centris-api/internal/database"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,8 +16,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/schollz/progressbar/v3"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/net/html"
 	"golang.org/x/time/rate"
 )
@@ -33,28 +32,20 @@ const (
 )
 
 func RunPropertyScraper() {
-	properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties := getProperties()
-	conn, dbErr := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-	if dbErr != nil {
-		log.Fatalf("Failed to connect to the database: %v", dbErr)
+	properties := getProperties()
+
+	conn, err := database.ConnectToDatabase()
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
-	defer conn.Close(context.Background())
-	dbServer := CreateServer(conn)
-	dbServer.uploadPropertiesToDB(properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties)
+
+	uploadPropertiesToDB(conn, properties)
 }
 
-func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.CreateAllPropertiesExpensesParams, [][]repository.CreateAllPropertiesFeaturesParams, [][]repository.CreateAllPropertiesPhotosParams, [][]repository.CreateAllBrokersPropertiesParams) {
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second, // Connection timeout
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   0, // No global timeout
+func getProperties() []Property {
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Failed to create http client:", err)
 	}
 
 	var wg sync.WaitGroup
@@ -63,13 +54,8 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 	links := GetAllProperties()
 	// Shared resources (declare sync.Mutex here)
 	var (
-		properties         []repository.CreateAllPropertiesParams
-		propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams
-		propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams
-		propertiesPhotos   [][]repository.CreateAllPropertiesPhotosParams
-		brokersProperties  [][]repository.CreateAllBrokersPropertiesParams
-		mutex              sync.Mutex // Declare mutex here
-		seenIDs            sync.Map
+		properties []Property
+		mutex      sync.Mutex // Declare mutex here
 	)
 
 	bar := progressbar.Default(int64(len(links)), "Scraping Property Links...")
@@ -114,20 +100,9 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 				// fmt.Println(link)
 				property := getProperty(doc)
 
-				if _, loaded := seenIDs.LoadOrStore(property.ID, true); !loaded {
-					propertyExpenses := getPropertyExpenses(doc, property.ID)
-					propertyFeatures := getPropertyFeatures(doc, property.ID)
-					propertyPhotos := getPropertyPhotos(property.ID)
-					brokerProperties := getPropertyBroker(doc, property.ID)
-
-					mutex.Lock()
-					properties = append(properties, property)
-					propertiesExpenses = append(propertiesExpenses, propertyExpenses)
-					propertiesFeatures = append(propertiesFeatures, propertyFeatures)
-					propertiesPhotos = append(propertiesPhotos, propertyPhotos)
-					brokersProperties = append(brokersProperties, brokerProperties)
-					mutex.Unlock()
-				}
+				mutex.Lock()
+				properties = append(properties, property)
+				mutex.Unlock()
 				bar.Add(1)
 			}
 
@@ -136,22 +111,13 @@ func getProperties() ([]repository.CreateAllPropertiesParams, [][]repository.Cre
 	wg.Wait()
 	bar.Reset()
 
-	return properties, propertiesExpenses, propertiesFeatures, propertiesPhotos, brokersProperties
+	return properties
 }
 
 func GetAllProperties() []string {
-	// Create a transport with connection pooling
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second, // Connection timeout
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   0, // No global timeout
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Failed to create http client:", err)
 	}
 
 	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl + PropertyMapUrl)
@@ -422,11 +388,12 @@ func getPropertyCityName(doc *html.Node) string {
 	return elementChildText
 }
 
-func getProperty(doc *html.Node) repository.CreateAllPropertiesParams {
+func getProperty(doc *html.Node) Property {
+	properyId := getPropertyId(doc)
 	// propertyTransactionType := getPropertyTransactionType(pageTitle)
 
-	return repository.CreateAllPropertiesParams{
-		ID:             getPropertyId(doc),
+	return Property{
+		ID:             properyId,
 		Title:          getPropertyTitle(doc),
 		Category:       getPropertyCategory(getPropertyTitle(doc)),
 		Address:        getPropertyAddress(doc),
@@ -438,14 +405,17 @@ func getProperty(doc *html.Node) repository.CreateAllPropertiesParams {
 		BathroomNumber: getPropertyRoomNumber(doc, "sdb"),
 		Latitude:       getPropertyCoordinate(doc, "latitude"),
 		Longitude:      getPropertyCoordinate(doc, "longitude"),
+		Expenses:       getPropertyExpenses(doc),
+		Features:       getPropertyFeatures(doc),
+		Photos:         getPropertyPhotos(properyId),
+		BrokerIds:      getBrokerIds(doc),
 	}
 }
 
-func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.CreateAllPropertiesExpensesParams {
-	currentTime := time.Now()
+func getPropertyExpenses(doc *html.Node) []PropertyExpense {
 	containerElement := FindElementByClassNode(doc, "div", "row financial-details-tables")
 	monthlyTables := FindElementsByAttribute(containerElement, "class", "financial-details-table financial-details-table-monthly")
-	var propertyExpenses []repository.CreateAllPropertiesExpensesParams
+	var propertyExpenses []PropertyExpense
 
 	for _, element := range monthlyTables {
 		tableTitle := FindElementByClass(element, "th", "col pl-0 financial-details-table-title")
@@ -469,13 +439,11 @@ func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.CreateAl
 			float32Value := float32(floatValue)
 			annualValue := (float32Value * 12)
 
-			propertyExpense := repository.CreateAllPropertiesExpensesParams{
+			propertyExpense := PropertyExpense{
 				ID:           uuid.New(),
-				PropertyID:   propertyId,
 				Type:         expenseType,
 				MonthlyPrice: float32Value,
 				AnnualPrice:  annualValue,
-				CreatedAt:    &currentTime,
 			}
 
 			propertyExpenses = append(propertyExpenses, propertyExpense)
@@ -486,20 +454,19 @@ func getPropertyExpenses(doc *html.Node, propertyId int64) []repository.CreateAl
 	return propertyExpenses
 }
 
-func getPropertyFeatures(doc *html.Node, propertyId int64) []repository.CreateAllPropertiesFeaturesParams {
+func getPropertyFeatures(doc *html.Node) []PropertyFeature {
 	elements := FindElementsByAttribute(doc, "class", "col-lg-3 col-sm-6 carac-container")
-	var propertyFeatures []repository.CreateAllPropertiesFeaturesParams
+	var propertyFeatures []PropertyFeature
 
 	for _, element := range elements {
 		elementTitle := FindElementByClass(element, "div", "carac-title")
 		elementValue := FindElementByClass(element, "div", "carac-value")
 
 		if elementTitle != "" && elementValue != "" {
-			propertyFeature := repository.CreateAllPropertiesFeaturesParams{
-				ID:         uuid.New(),
-				PropertyID: propertyId,
-				Title:      elementTitle,
-				Value:      elementValue,
+			propertyFeature := PropertyFeature{
+				ID:    uuid.New(),
+				Title: elementTitle,
+				Value: elementValue,
 			}
 			propertyFeatures = append(propertyFeatures, propertyFeature)
 		}
@@ -508,10 +475,9 @@ func getPropertyFeatures(doc *html.Node, propertyId int64) []repository.CreateAl
 	return propertyFeatures
 }
 
-func getPropertyPhotos(propertyId int64) []repository.CreateAllPropertiesPhotosParams {
-	currentTime := time.Now()
+func getPropertyPhotos(propertyId int64) []PropertyPhoto {
 	url := "https://www.centris.ca/Property/PhotoViewerDataListing"
-	var propertyPhotos []repository.CreateAllPropertiesPhotosParams
+	var propertyPhotos []PropertyPhoto
 
 	// Prepare request body
 	body := RequestBodyPhoto{
@@ -536,7 +502,11 @@ func getPropertyPhotos(propertyId int64) []repository.CreateAllPropertiesPhotosP
 	req.Header.Set("Content-Type", "application/json")
 
 	// Make request
-	client := &http.Client{}
+	client, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Println("Failed to create http client:", err)
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil
@@ -561,12 +531,10 @@ func getPropertyPhotos(propertyId int64) []repository.CreateAllPropertiesPhotosP
 		photoUrlQueryParameterIndex := strings.Index(photoUrl, "&t")
 		photoUrl = photoUrl[:photoUrlQueryParameterIndex] + "&t=pi&f=I"
 
-		propertyPhoto := repository.CreateAllPropertiesPhotosParams{
+		propertyPhoto := PropertyPhoto{
 			ID:          uuid.New(),
-			PropertyID:  propertyId,
 			Link:        photoUrl,
 			Description: &photo.Desc,
-			CreatedAt:   &currentTime,
 		}
 
 		propertyPhotos = append(propertyPhotos, propertyPhoto)
@@ -575,10 +543,9 @@ func getPropertyPhotos(propertyId int64) []repository.CreateAllPropertiesPhotosP
 	return propertyPhotos
 }
 
-func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllBrokersPropertiesParams {
-	currentTime := time.Now()
+func getBrokerIds(doc *html.Node) []int64 {
 	elements := FindElementsByAttribute(doc, "class", "broker-info legacy-reset  ")
-	brokerProperties := []repository.CreateAllBrokersPropertiesParams{}
+	brokerIds := []int64{}
 
 	for _, element := range elements {
 		brokerIdString := FindElementAttribute(element, "div", "class", "broker-info legacy-reset  ", "data-broker-id")
@@ -587,74 +554,26 @@ func getPropertyBroker(doc *html.Node, propertyId int64) []repository.CreateAllB
 			continue
 		}
 
-		brokerProperty := repository.CreateAllBrokersPropertiesParams{
-			ID:         uuid.New(),
-			BrokerID:   brokerId,
-			PropertyID: propertyId,
-			CreatedAt:  &currentTime,
-		}
-
-		brokerProperties = append(brokerProperties, brokerProperty)
+		brokerIds = append(brokerIds, brokerId)
 	}
 
-	return brokerProperties
+	return brokerIds
 }
 
-func (s *Server) uploadPropertiesToDB(properties []repository.CreateAllPropertiesParams, propertiesExpenses [][]repository.CreateAllPropertiesExpensesParams, propertiesFeatures [][]repository.CreateAllPropertiesFeaturesParams, propertiesPhotos [][]repository.CreateAllPropertiesPhotosParams, brokersProperties [][]repository.CreateAllBrokersPropertiesParams) {
-	ctx := context.Background()
-	bar := progressbar.Default(int64(5), "Inserting Property Data...")
-	s.queries.DeleteAllProperties(ctx)
-	SendNotification("Process Complete", "Successfully deleted all properties")
+func uploadPropertiesToDB(conn *mongo.Database, properties []Property) {
+	bar := progressbar.Default(int64(len(properties)), "Inserting Property Data...")
 
-	_, err := s.queries.CreateAllProperties(ctx, properties)
-	if err != nil {
-		log.Printf("Failed to insert properties")
-		log.Println("Error: " + err.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Failed to insert %d properties", len(properties)))
-		return
+	for _, property := range properties {
+		filter := bson.M{"id": bson.M{"$in": property.BrokerIds}}
+		property.BrokerIds = []int64{}
+		update := bson.M{"$push": bson.M{"properties": property}}
+
+		_, err := conn.Collection("brokers").UpdateMany(context.TODO(), filter, update)
+		if err != nil {
+			log.Printf("Failed to update brokers for property %d: %v", property.ID, err)
+		}
+		bar.Add(1)
 	}
-	bar.Add(1)
-
-	flatPropertiesExpenses := flattenArray(propertiesExpenses)
-	_, err = s.queries.CreateAllPropertiesExpenses(ctx, flatPropertiesExpenses)
-	if err != nil {
-		log.Printf("Failed to insert property expenses")
-		log.Println("Error: " + err.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property expenses", len(flatPropertiesExpenses)))
-		return
-	}
-	bar.Add(1)
-
-	flatPropertiesFeatures := flattenArray(propertiesFeatures)
-	_, err = s.queries.CreateAllPropertiesFeatures(ctx, flatPropertiesFeatures)
-	if err != nil {
-		log.Printf("Failed to insert property features")
-		log.Println("Error: " + err.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property features", len(flatPropertiesFeatures)))
-		return
-	}
-	bar.Add(1)
-
-	flatPropertiesPhotos := flattenArray(propertiesPhotos)
-	_, err = s.queries.CreateAllPropertiesPhotos(ctx, flatPropertiesPhotos)
-	if err != nil {
-		log.Printf("Failed to insert property photos")
-		log.Println("Error: " + err.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d property photos", len(flatPropertiesPhotos)))
-		return
-	}
-	bar.Add(1)
-
-	flatBrokerProperties := flattenArray(brokersProperties)
-	_, err = s.queries.CreateAllBrokersProperties(ctx, flatBrokerProperties)
-	if err != nil {
-		log.Printf("Failed to insert broker properties")
-		log.Println("Error: " + err.Error())
-		SendNotification("Process Failed", fmt.Sprintf("Falied to insert %d broker properties", len(flatBrokerProperties)))
-		return
-	}
-	bar.Add(1)
-
 	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d properties", len(properties)))
 	bar.Reset()
 }
