@@ -115,12 +115,7 @@ func getProperties() []Property {
 }
 
 func GetAllProperties() []string {
-	client, err := NewClientFromEnv()
-	if err != nil {
-		fmt.Println("Failed to create http client:", err)
-	}
-
-	aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl + PropertyMapUrl)
+	client, aspNetCoreSession, arrAffinitySameSite, _ := GenerateSession(baseUrl + PropertyMapUrl)
 
 	pins := getAllPins(client, aspNetCoreSession, arrAffinitySameSite)
 	housesHTML := getAllHouses(client, pins, aspNetCoreSession, arrAffinitySameSite)
@@ -561,19 +556,27 @@ func getBrokerIds(doc *html.Node) []int64 {
 }
 
 func uploadPropertiesToDB(conn *mongo.Database, properties []Property) {
+	var wg sync.WaitGroup
 	bar := progressbar.Default(int64(len(properties)), "Inserting Property Data...")
 
 	for _, property := range properties {
-		filter := bson.M{"id": bson.M{"$in": property.BrokerIds}}
-		property.BrokerIds = []int64{}
-		update := bson.M{"$push": bson.M{"properties": property}}
+		wg.Add(1)
+		go func(prop Property) {
+			defer wg.Done()
 
-		_, err := conn.Collection("brokers").UpdateMany(context.TODO(), filter, update)
-		if err != nil {
-			log.Printf("Failed to update brokers for property %d: %v", property.ID, err)
-		}
-		bar.Add(1)
+			filter := bson.M{"id": bson.M{"$in": prop.BrokerIds}}
+			prop.BrokerIds = []int64{}
+			update := bson.M{"$push": bson.M{"properties": prop}}
+
+			_, err := conn.Collection("brokers").UpdateMany(context.TODO(), filter, update)
+			if err != nil {
+				log.Printf("Failed to update brokers for property %d: %v", prop.ID, err)
+			}
+			bar.Add(1)
+		}(property)
 	}
+
+	wg.Wait() // Wait for all goroutines to finish
 	SendNotification("Process Complete", fmt.Sprintf("Successfully inserted %d properties", len(properties)))
 	bar.Reset()
 }
