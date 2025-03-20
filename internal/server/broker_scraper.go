@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/schollz/progressbar/v3"
@@ -31,8 +30,8 @@ const (
 )
 
 func RunBrokerScraper() {
-	aspNetCoreSession, arrAffinitySameSite, numberOfBrokers := GenerateSession(baseUrl + BrokerUrl)
-	brokers := getBrokers(baseUrl+brokerEndpoint, numberOfBrokers, aspNetCoreSession, arrAffinitySameSite)
+	client, aspNetCoreSession, arrAffinitySameSite, numberOfBrokers := GenerateSession(baseUrl + BrokerUrl)
+	brokers := getBrokers(client, baseUrl+brokerEndpoint, numberOfBrokers, aspNetCoreSession, arrAffinitySameSite)
 
 	conn, err := database.ConnectToDatabase()
 	if err != nil {
@@ -42,7 +41,7 @@ func RunBrokerScraper() {
 	uploadBrokersToDB(conn, brokers)
 }
 
-func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
+func makeBrokerRequest(client *http.Client, url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) BrokerResponse {
 	// Data to be sent in the JSON body
 	requestData := map[string]int{
 		"startPosition": startPosition,
@@ -69,12 +68,11 @@ func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, 
 	req.Header.Set("Cookie", ".AspNetCore.Session="+aspNetCoreSession+"; ARRAffinitySameSite="+arrAffinitySameSite+";")
 
 	// Send the request using the default HTTP client
-	resp := recursiveRequestUntilSuccess(req)
-	if resp == nil {
-		fmt.Println("Failed to get a valid response")
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
 		return BrokerResponse{}
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		fmt.Println(resp.StatusCode)
@@ -99,30 +97,30 @@ func makeBrokerRequest(url string, startPosition int, aspNetCoreSession string, 
 	return brokerResponse
 }
 
-func recursiveRequestUntilSuccess(req *http.Request) *http.Response {
-	client, err := NewClientFromEnv()
-	if err != nil {
-		fmt.Println("Error creating client:", err)
-		return nil
-	}
+// func recursiveRequestUntilSuccess(req *http.Request) *http.Response {
+// 	client, err := NewClientFromEnv()
+// 	if err != nil {
+// 		fmt.Println("Error creating client:", err)
+// 		return nil
+// 	}
 
-	var resp *http.Response
-	retryCount := 0
-	for {
-		resp, err = client.Do(req)
-		if err != nil {
-			fmt.Println("Error sending request:", err)
-			retryCount++
-			if retryCount > 5 { // Limit retries
-				fmt.Println("Max retries reached, aborting.")
-				return nil
-			}
-			time.Sleep(time.Duration(retryCount) * 2 * time.Second) // Exponential backoff
-			continue
-		}
-		return resp
-	}
-}
+// 	var resp *http.Response
+// 	retryCount := 0
+// 	for {
+// 		resp, err = client.Do(req)
+// 		if err != nil {
+// 			fmt.Println("Error sending request:", err)
+// 			retryCount++
+// 			if retryCount > 5 { // Limit retries
+// 				fmt.Println("Max retries reached, aborting.")
+// 				return nil
+// 			}
+// 			time.Sleep(time.Duration(retryCount) * 2 * time.Second) // Exponential backoff
+// 			continue
+// 		}
+// 		return resp
+// 	}
+// }
 
 func parseBrokerName(fullName string) (string, string, string) {
 	parts := strings.Split(fullName, " ")
@@ -151,7 +149,7 @@ func parseBrokerName(fullName string) (string, string, string) {
 	return firstName, middleName, lastName
 }
 
-func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAffinitySameSite string) []interface{} {
+func getBrokers(client *http.Client, url string, numberOfBrokers int, aspNetCoreSession string, arrAffinitySameSite string) []interface{} {
 	brokerResults := make(chan Broker, numberOfBrokers)
 	sem := make(chan struct{}, 50) // Limit to 50 concurrent requests
 
@@ -159,7 +157,7 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 		go func(pos int) {
 			sem <- struct{}{}        // Acquire a spot
 			defer func() { <-sem }() // Release the spot
-			broker := getBroker(url, pos, aspNetCoreSession, arrAffinitySameSite)
+			broker := getBroker(client, url, pos, aspNetCoreSession, arrAffinitySameSite)
 			brokerResults <- broker
 		}(position)
 	}
@@ -184,8 +182,8 @@ func getBrokers(url string, numberOfBrokers int, aspNetCoreSession string, arrAf
 	return brokers
 }
 
-func getBroker(url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) Broker {
-	brokerResponse := makeBrokerRequest(url, startPosition, aspNetCoreSession, arrAffinitySameSite)
+func getBroker(client *http.Client, url string, startPosition int, aspNetCoreSession string, arrAffinitySameSite string) Broker {
+	brokerResponse := makeBrokerRequest(client, url, startPosition, aspNetCoreSession, arrAffinitySameSite)
 	brokerName := getBrokerName(brokerResponse)
 	brokerFirstName, brokerMiddleName, brokerLastName := parseBrokerName(brokerName)
 
