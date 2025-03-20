@@ -10,26 +10,35 @@ import (
 	"golang.org/x/net/html"
 )
 
-func GenerateSession(url string) (string, string, int) {
+func GenerateSession(url string) (*http.Client, string, string, int) {
 	// Create a new HTTP request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Println("Error creating HTTP request:", err)
-		return "", "", 0
+		return nil, "", "", 0
 	}
 
 	// Make the GET request
-	client, err := NewClientFromEnv()
-	if err != nil {
-		fmt.Println("Error creating client:", err)
-		return "", "", 0
+	var resp *http.Response
+	var client *http.Client
+	for {
+		client, err = NewClientFromEnv()
+		if err != nil {
+			fmt.Println("Error creating client:", err)
+			return nil, "", "", 0
+		}
+
+		resp, err = client.Do(req)
+		if err != nil {
+			log.Fatalf("Failed to make GET request: %v", err)
+			return nil, "", "", 0
+		}
+
+		if resp.Header["Content-Language"][0] == "fr" {
+			break
+		}
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("Failed to make GET request: %v", err)
-		return "", "", 0
-	}
 	defer resp.Body.Close()
 
 	// Extract cookies from the response headers
@@ -51,12 +60,12 @@ func GenerateSession(url string) (string, string, int) {
 	numberOfBrokers := 0
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		return aspNetCoreSession, arrAffinitySameSite, numberOfBrokers
+		return client, aspNetCoreSession, arrAffinitySameSite, numberOfBrokers
 	}
 
 	numberOfBrokers, _ = strconv.Atoi(strings.ReplaceAll(strings.ReplaceAll(FindElementByClass(doc, "span", "resultCount"), "\u00a0", ""), " ", ""))
 
-	return aspNetCoreSession, arrAffinitySameSite, numberOfBrokers
+	return client, aspNetCoreSession, arrAffinitySameSite, numberOfBrokers
 }
 
 func ExtractCookieValue(cookie string, key string) string {
