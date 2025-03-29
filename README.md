@@ -110,12 +110,6 @@ The application can be run with different commands:
 -   `broker-scraper` - Run the broker data scraper
 -   `property-scraper` - Run the property data scraper
 
-Example:
-
-```bash
-./main property-scraper
-```
-
 ## Project Structure
 
 -   `/cmd/api` - Application entrypoint and main server code
