@@ -89,13 +89,18 @@ GOOSE_MIGRATION_DIR=./migrations
 
 3. Setup the database
 
-4. Build and run the application
+    You can use any PostgreSQL database, such as Supabase, or host your own PostgreSQL instance. Once your database is ready:
+   - Create a new database.
+   - Apply the necessary migrations (if applicable).
+   - Update the application's configuration file (e.g., .env) with your database connection details.
+
+5. Build and run the application
 
     ```bash
     go run cmd/api/main.go [property-scraper|broker-scraper]
     ```
 
-5. Access the Swagger documentation at http://localhost:8080/swagger/
+6. Access the Swagger documentation at http://localhost:8080/swagger/
 
 ## Command Line Options
 
