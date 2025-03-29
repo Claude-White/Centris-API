@@ -1,53 +1,15 @@
-# Project centris-api
+# Project centris-api (MongoDB Migration)
 
-One Paragraph of project description goes here
+This branch contains a version of the centris-api modified to work with MongoDB instead of the original SQL database.
 
-## Getting Started
+## MongoDB Migration Details
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+The major changes include:
 
-## MakeFile
+1. Refactored broker scraper to work with MongoDB
+2. Refactored property scraper to work with MongoDB
+3. Adjusted session management for Tor browser instances
+4. Modified repository layer for MongoDB compatibility
 
-Run build make command with tests
-```bash
-make all
-```
+The MongoDB schema is designed to maintain all the original functionality while leveraging document-oriented database benefits.
 
-Build the application
-```bash
-make build
-```
-
-Run the application
-```bash
-make run
-```
-Create DB container
-```bash
-make docker-run
-```
-
-Shutdown DB Container
-```bash
-make docker-down
-```
-
-DB Integrations Test:
-```bash
-make itest
-```
-
-Live reload the application:
-```bash
-make watch
-```
-
-Run the test suite:
-```bash
-make test
-```
-
-Clean up binary from the last build:
-```bash
-make clean
-```
