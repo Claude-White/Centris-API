@@ -1,53 +1,149 @@
-# Project centris-api
+# Centris-API
 
-One Paragraph of project description goes here
+A Go-based API service for scraping and serving real estate data from Centris.ca, focused on Quebec real estate market listings.
+
+## Project Overview
+
+Centris-API is a powerful tool that extracts, processes, and serves real estate data from Centris.ca through a RESTful API. It manages two main types of data:
+
+1. **Properties** - Real estate listings with details like price, location, features, and photos
+2. **Brokers** - Real estate agents with their contact information, served areas, and associated properties
+
+The system includes two scrapers:
+
+- **Property Scraper** - Collects property information including expenses, features, and photos
+- **Broker Scraper** - Gathers broker details, phone numbers, and external links (social media, websites)
+
+## Features
+
+- **RESTful API** with Swagger documentation
+- **Property data** including features, expenses, and photos
+- **Broker information** with contact details and external links
+- **Geolocation-based search** capabilities
+- **Pagination support** for all endpoints
+- **PostgreSQL database** for data storage
+- **Docker support** for easy deployment
+- **Graceful shutdown** handling
+
+## Technology Stack
+
+- **Go** (1.23+) - Core programming language
+- **PostgreSQL** - Database for storing scraped data
+- **SQLC** - Type-safe SQL query generation
+- **Swagger** - API documentation
+- **Docker/Docker Compose** - Containerization and orchestration
+- **Goose** - Database migration management
+
+## API Endpoints
+
+### Properties
+
+- `GET /properties/{mls}` - Get property by MLS number
+- `POST /properties` - Get all properties (paginated)
+- `POST /properties/coordinates` - Get property by coordinates
+- `POST /properties/broker` - Get all properties by broker
+- `POST /properties/agency` - Get all properties by agency
+- `POST /properties/city` - Get all properties by city
+- `POST /properties/radius` - Get all properties within a radius
+
+### Brokers
+
+- `GET /brokers/{brokerId}` - Get broker by ID
+- `POST /brokers` - Get all brokers (paginated)
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+### Prerequisites
 
-## MakeFile
+- Go 1.23 or higher
+- PostgreSQL
+- Docker and Docker Compose (optional)
 
-Run build make command with tests
-```bash
-make all
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+PORT=8080
+APP_ENV=local
+DATABASE_URL=postgresql://username:password@localhost:5432/database_name
+BLUEPRINT_DB_HOST=localhost
+BLUEPRINT_DB_PORT=5432
+BLUEPRINT_DB_DATABASE=database_name
+BLUEPRINT_DB_USERNAME=username
+BLUEPRINT_DB_PASSWORD=password
+BLUEPRINT_DB_SCHEMA=public
 ```
 
-Build the application
+### Installation
+
+1. Clone the repository
+
+   ```bash
+   git clone https://github.com/your-username/Centris-API.git
+   cd Centris-API
+   ```
+
+2. Install dependencies
+
+   ```bash
+   go mod download
+   ```
+
+3. Setup the database
+
+   ```bash
+   make docker-run
+   ```
+
+4. Build and run the application
+
+   ```bash
+   make build
+   make run
+   ```
+
+5. Access the Swagger documentation at http://localhost:8080/swagger/
+
+## Command Line Options
+
+The application can be run with different commands:
+
+- Default (no args) - Start the HTTP server
+- `broker-scraper` - Run the broker data scraper
+- `property-scraper` - Run the property data scraper
+
+Example:
+
 ```bash
-make build
+./main property-scraper
 ```
 
-Run the application
-```bash
-make run
-```
-Create DB container
-```bash
-make docker-run
-```
+## Project Structure
 
-Shutdown DB Container
-```bash
-make docker-down
-```
+- `/cmd/api` - Application entrypoint and main server code
+- `/docs` - Swagger documentation
+- `/internal`
+  - `/repository` - Database models and queries (SQLC-generated)
+  - `/server` - HTTP server, routes, and scraper implementations
+- `/migrations` - Database migration files
+- `/sqlc` - SQLC configuration and query definitions
+  - `/queries` - SQL query templates
 
-DB Integrations Test:
-```bash
-make itest
-```
+## Branches
 
-Live reload the application:
-```bash
-make watch
-```
+- `main` - Stable version of the application
+- `MongoDB-Migration` - Migration to MongoDB database
+- `kubernetes-implementation` - Kubernetes deployment configuration
 
-Run the test suite:
-```bash
-make test
-```
+## License
 
-Clean up binary from the last build:
-```bash
-make clean
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [Centris.ca](https://www.centris.ca) - Source of real estate data
+- [SQLC](https://sqlc.dev/) - SQL query generation tool
+- [Swagger](https://swagger.io/) - API documentation framework
+- [Goose](https://github.com/pressly/goose) - Database migration tool
+
