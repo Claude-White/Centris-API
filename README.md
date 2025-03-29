@@ -1,53 +1,47 @@
-# Project centris-api
+# Centris-API: Kubernetes Implementation
 
-One Paragraph of project description goes here
+A scalable web scraper for real estate data, optimized for Kubernetes deployment.
+
+## Overview
+
+This branch implements Kubernetes support for the Centris-API, enabling distributed and parallelized scraping jobs. It leverages Kubernetes' resource management and orchestration to efficiently distribute scraping workloads across multiple pods.
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+### Prerequisites
 
-## MakeFile
+- Docker
+- Kubernetes cluster (or minikube/kind for local development)
+- kubectl CLI tool
 
-Run build make command with tests
+### Kubernetes Deployment
+
+Deploy the application to a Kubernetes cluster:
+
 ```bash
-make all
+kubectl apply -f kind.yml
 ```
 
-Build the application
-```bash
-make build
-```
+## Kubernetes Features
 
-Run the application
-```bash
-make run
-```
-Create DB container
-```bash
-make docker-run
-```
+- **Parallelized Scraping**: Configure the number of parallel pods for scraping
+- **Job Management**: Uses Kubernetes Jobs for reliable task completion
+- **Resource Optimization**: Efficiently distributes scraping workload
+- **Scalability**: Easily scale up or down based on workload requirements
 
-Shutdown DB Container
-```bash
-make docker-down
-```
+## Environment Variables
 
-DB Integrations Test:
-```bash
-make itest
-```
+The application requires the following environment variables:
 
-Live reload the application:
-```bash
-make watch
-```
+- `APP_ENV`: Application environment (development/production)
+- `PORT`: Application port
+- `DATABASE_URL`: PostgreSQL database connection string
+- `GOOSE_DRIVER`: Database driver for Goose migrations (usually "postgres")
+- `GOOSE_DBSTRING`: Database connection string for Goose migrations
+- `GOOSE_MIGRATION_DIR`: Directory containing migration files
+- `NUM_PODS`: Total number of pods for distributed scraping
+- `POD_INDEX`: Pod index for workload distribution (automatically set by Kubernetes)
 
-Run the test suite:
-```bash
-make test
-```
+## Architecture
 
-Clean up binary from the last build:
-```bash
-make clean
-```
+This implementation divides the scraping workload across multiple pods, with each pod responsible for a portion of the target data. The Kubernetes Job ensures all scraping tasks complete successfully and handles any pod failures automatically.
