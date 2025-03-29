@@ -10,9 +10,9 @@ This branch implements Kubernetes support for the Centris-API, enabling distribu
 
 ### Prerequisites
 
-- Docker
-- Kubernetes cluster (or minikube/kind for local development)
-- kubectl CLI tool
+-   Docker
+-   Kubernetes cluster (or minikube/kind for local development)
+-   kubectl CLI tool
 
 ### Kubernetes Deployment
 
@@ -24,23 +24,25 @@ kubectl apply -f kind.yml
 
 ## Kubernetes Features
 
-- **Parallelized Scraping**: Configure the number of parallel pods for scraping
-- **Job Management**: Uses Kubernetes Jobs for reliable task completion
-- **Resource Optimization**: Efficiently distributes scraping workload
-- **Scalability**: Easily scale up or down based on workload requirements
+-   **Parallelized Scraping**: Configure the number of parallel pods for scraping
+-   **Job Management**: Uses Kubernetes Jobs for reliable task completion
+-   **Resource Optimization**: Efficiently distributes scraping workload
+-   **Scalability**: Easily scale up or down based on workload requirements
 
 ## Environment Variables
 
-The application requires the following environment variables:
+Create a `.env` file in the root directory with the following variables:
 
-- `APP_ENV`: Application environment (development/production)
-- `PORT`: Application port
-- `DATABASE_URL`: PostgreSQL database connection string
-- `GOOSE_DRIVER`: Database driver for Goose migrations (usually "postgres")
-- `GOOSE_DBSTRING`: Database connection string for Goose migrations
-- `GOOSE_MIGRATION_DIR`: Directory containing migration files
-- `NUM_PODS`: Total number of pods for distributed scraping
-- `POD_INDEX`: Pod index for workload distribution (automatically set by Kubernetes)
+```env
+PORT=8080
+APP_ENV=local
+DATABASE_URL=postgresql://username:password@localhost:5432/database_name
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgresql://username:password@localhost:5432/database_name
+GOOSE_MIGRATION_DIR=./migrations
+POD_INDEX=0
+NUM_PODS=50
+```
 
 ## Architecture
 
